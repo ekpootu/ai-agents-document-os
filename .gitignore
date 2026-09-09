@@ -56,9 +56,18 @@ scratch/
 .gemini/
 .system_generated/
 
+# Excluded User Deliverables & Working Folders
+web/
+no-commit/
+
+# Documentation: Only the official comprehensive guide v4 is tracked
+docs/*
+!docs/AI_Agents_Document_OS_Comprehensive_Guide_v4.pdf
+
 # Brand reference images (personal design source files)
 brand-color*.png
 brand-color*.jpeg
 brand-color*.jpg
 font-combo*.jpg
 sample-page*.jpg
+

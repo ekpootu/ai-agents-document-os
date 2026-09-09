@@ -1,4 +1,4 @@
-# Universal Agent Instructions: Document Operating System (Document OS)
+# Universal Agent Instructions: AI Agents Document Operating System (Document OS)
 
 This repository contains the **Universal Document Operating System** for AI agents (Antigravity, Claude Code, OpenCode CLI, Cursor, and Cline).
 

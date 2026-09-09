@@ -1,18 +1,23 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Antigravity Document Operating System (Document OS) - POSIX Installer (Linux/macOS)
+# AI Agents Document Operating System (Document OS) - POSIX Installer (Linux/macOS)
+# Author: Ekpo Otu, Ph.D. - https://linktr.ee/ekpootu
 # ==============================================================================
 
 set -e
+
+CYAN='\033[0;36m'
+GREEN='\033[0;32m'
+NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV_DIR="$SCRIPT_DIR/.venv-docos"
 PLUGIN_SRC="$SCRIPT_DIR/.agents/plugins/document-os"
 
-echo "=========================================================="
-echo "   Antigravity Document Operating System (Document OS)    "
-echo "               Linux / macOS Installer                    "
-echo "=========================================================="
+echo -e "${CYAN}==========================================================${NC}"
+echo -e "${CYAN}    AI Agents Document Operating System (Document OS)     ${NC}"
+echo -e "${CYAN}               Linux / macOS Installer                    ${NC}"
+echo -e "${CYAN}==========================================================${NC}"
 
 # 1. Check Python
 if ! command -v python3 &>/dev/null; then

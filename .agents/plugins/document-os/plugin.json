@@ -1,7 +1,7 @@
 {
-  "name": "antigravity-document-os",
-  "version": "2.0.0",
-  "description": "Universal Document Operating System providing high-fidelity reading, editing, conversion, extraction, professional PDF generation, brand-consistent styling, and quality assurance across PDF, DOCX, XLSX, PPTX, Markdown, and Images.",
+  "name": "ai-agents-document-os",
+  "version": "2.1.0",
+  "description": "AI Agents Document Operating System providing deterministic high-fidelity reading, editing, conversion, extraction, professional PDF generation, web design, conversion copywriting, and quality assurance across PDF, DOCX, XLSX, PPTX, Markdown, and Images.",
   "author": "Ekpo Otu, Ph.D. (https://linktr.ee/ekpootu)",
   "license": "MIT",
   "repository": "https://github.com/ekpootu/ai-agents-document-os",

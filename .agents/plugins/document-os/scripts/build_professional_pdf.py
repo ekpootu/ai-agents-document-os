@@ -1,23 +1,21 @@
 #!/usr/bin/env python3
 """
-build_professional_pdf.py — Professional Document OS Guide Builder (v3)
+build_professional_pdf.py — AI Agents Document OS Professional PDF Builder (v4)
 
-Generates a KDP-quality PDF using ReportLab with embedded Google Fonts
-(Playfair Display + Source Sans 3), brand color palette, running headers/
-footers, chapter openers, callout boxes, and author section.
-
-Brand Tokens:  Royal Blue #1A3A8F | Golden #FFC107 | Navy #0D1B4C
-Author:        Ekpo Otu, Ph.D. — https://linktr.ee/ekpootu
-
-Falls back gracefully if custom fonts cannot be downloaded.
+Generates an Amazon KDP-standard book-quality PDF using ReportLab with:
+- 1.6:1 height-to-width ratio (6.0 in x 9.6 in)
+- Embedded Google Fonts (Playfair Display + Source Sans 3)
+- Clickable Table of Contents with true destination anchors
+- Brand color palette (Royal Blue #1A3A8F, Golden Yellow #FFC107, Deep Navy #0D1B4C)
+- Reduced white space and tight content flow
+- Running headers/footers with dynamic page numbering
+- Author: Ekpo Otu, Ph.D. — https://linktr.ee/ekpootu
 """
 
 import sys
 import json
 import urllib.request
-import tempfile
 from pathlib import Path
-from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -29,6 +27,15 @@ from reportlab.platypus import (
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+
+# ---------------------------------------------------------------------------
+# Page Dimensions: Exact 1.6:1 Height-to-Width Ratio
+# ---------------------------------------------------------------------------
+PAGE_WIDTH = 6.0 * inch
+PAGE_HEIGHT = 9.6 * inch  # 6.0 * 1.6 = 9.6
+PAGE_SIZE = (PAGE_WIDTH, PAGE_HEIGHT)
+MARGIN = 0.55 * inch
+PRINTABLE_WIDTH = PAGE_WIDTH - 2 * MARGIN  # 4.9 inches
 
 # ---------------------------------------------------------------------------
 # Brand Tokens
@@ -57,18 +64,14 @@ BRAND = {
 C = {k: colors.HexColor(v) for k, v in BRAND.items()}
 
 # ---------------------------------------------------------------------------
-# Font Registration — attempt to use bundled fonts, else Helvetica fallback
+# Font Registration — Google Fonts with Fallback
 # ---------------------------------------------------------------------------
 FONT_DIR = Path(__file__).parent / "templates" / "fonts"
 
-# Google Fonts download URLs (static TTF files from GitHub)
 GOOGLE_FONT_URLS = {
     "PlayfairDisplay-Bold": "https://raw.githubusercontent.com/google/fonts/main/ofl/playfairdisplay/PlayfairDisplay%5Bwght%5D.ttf",
     "SourceSans3-Regular": "https://raw.githubusercontent.com/google/fonts/main/ofl/sourcesans3/SourceSans3%5Bwght%5D.ttf",
 }
-
-# Variable fonts need special handling — we download the variable font and register it
-# under specific names for ReportLab compatibility
 
 def _download_font(name: str, url: str) -> Path | None:
     """Download a font file if not already cached."""
@@ -88,268 +91,183 @@ def register_fonts():
     """Register Google Fonts or fall back to built-in Helvetica."""
     fonts_available = True
     for name, url in GOOGLE_FONT_URLS.items():
-        path = _download_font(name, url)
-        if path:
-            try:
-                pdfmetrics.registerFont(TTFont(name, str(path)))
-            except Exception as e:
-                print(f"  Warning: Could not register {name}: {e}")
-                fonts_available = False
-        else:
+        p = _download_font(name, url)
+        if not p or not p.exists():
             fonts_available = False
 
     if fonts_available:
-        # Variable fonts work at default weight in ReportLab
-        # We map all style slots to the available registered fonts
-        return {
-            "display": "PlayfairDisplay-Bold",
-            "display_xl": "PlayfairDisplay-Bold",
-            "body": "SourceSans3-Regular",
-            "body_semi": "SourceSans3-Regular",
-            "body_bold": "SourceSans3-Regular",
-            "body_italic": "SourceSans3-Regular",
-            "mono": "Courier",  # ReportLab built-in
-        }
-    else:
-        print("  Falling back to Helvetica font family.")
-        return {
-            "display": "Helvetica-Bold",
-            "display_xl": "Helvetica-Bold",
-            "body": "Helvetica",
-            "body_semi": "Helvetica-Bold",
-            "body_bold": "Helvetica-Bold",
-            "body_italic": "Helvetica-Oblique",
-            "mono": "Courier",
-        }
+        try:
+            display_path = FONT_DIR / "PlayfairDisplay-Bold.ttf"
+            body_path = FONT_DIR / "SourceSans3-Regular.ttf"
 
-# ---------------------------------------------------------------------------
-# Numbered Canvas with Professional Headers/Footers
-# ---------------------------------------------------------------------------
-class ProfessionalCanvas(canvas.Canvas):
-    """Canvas with running headers, footers, and page decorations."""
+            pdfmetrics.registerFont(TTFont("PlayfairDisplay-Bold", str(display_path)))
+            pdfmetrics.registerFont(TTFont("SourceSans3-Regular", str(body_path)))
 
-    def __init__(self, *args, fonts=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._saved_page_states = []
-        self._fonts = fonts or {}
-        self._chapter_pages = set()  # pages that are chapter openers
+            pdfmetrics.registerFontFamily(
+                "SourceSans3",
+                normal="SourceSans3-Regular",
+                bold="SourceSans3-Regular",
+                italic="SourceSans3-Regular",
+                boldItalic="SourceSans3-Regular",
+            )
+            pdfmetrics.registerFontFamily(
+                "PlayfairDisplay",
+                normal="PlayfairDisplay-Bold",
+                bold="PlayfairDisplay-Bold",
+                italic="PlayfairDisplay-Bold",
+                boldItalic="PlayfairDisplay-Bold",
+            )
+            return {
+                "display": "PlayfairDisplay-Bold",
+                "display_xl": "PlayfairDisplay-Bold",
+                "body": "SourceSans3-Regular",
+                "body_bold": "SourceSans3-Regular",
+                "body_semi": "SourceSans3-Regular",
+                "mono": "Courier",
+            }
+        except Exception as e:
+            print(f"  Font registration warning: {e}, using Helvetica fallback")
 
-    def mark_chapter_page(self):
-        self._chapter_pages.add(len(self._saved_page_states) + 1)
-
-    def showPage(self):
-        self._saved_page_states.append(dict(self.__dict__))
-        self._startPage()
-
-    def save(self):
-        num_pages = len(self._saved_page_states)
-        for state in self._saved_page_states:
-            self.__dict__.update(state)
-            self._draw_decorations(num_pages)
-            super().showPage()
-        super().save()
-
-    def _draw_decorations(self, total_pages):
-        self.saveState()
-        page_num = self._pageNumber
-        body_font = self._fonts.get("body", "Helvetica")
-        is_title_page = (page_num == 1)
-        is_chapter = page_num in self._chapter_pages
-
-        # --- Running Header (skip on title page and chapter openers) ---
-        if not is_title_page and not is_chapter:
-            self.setFont(body_font, 7.5)
-            self.setFillColor(colors.HexColor("#6B7280"))
-            self.drawString(0.75 * inch, 10.35 * inch,
-                            "Antigravity Document OS — Comprehensive User Guide v3.0")
-            # Thin header rule
-            self.setStrokeColor(colors.HexColor("#DEE2E6"))
-            self.setLineWidth(0.4)
-            self.line(0.75 * inch, 10.28 * inch, 7.75 * inch, 10.28 * inch)
-
-        # --- Footer rule + page number (skip on title page) ---
-        if not is_title_page:
-            self.setStrokeColor(colors.HexColor("#DEE2E6"))
-            self.setLineWidth(0.4)
-            self.line(0.75 * inch, 0.62 * inch, 7.75 * inch, 0.62 * inch)
-
-            self.setFont(body_font, 8)
-            self.setFillColor(colors.HexColor("#6B7280"))
-            page_text = f"{page_num}"
-            self.drawCentredString(4.25 * inch, 0.42 * inch, page_text)
-
-            # Footer left: author
-            self.setFont(body_font, 7)
-            self.setFillColor(colors.HexColor("#9CA3AF"))
-            self.drawString(0.75 * inch, 0.42 * inch,
-                            "© Ekpo Otu, Ph.D. • linktr.ee/ekpootu")
-            # Footer right: branding
-            self.drawRightString(7.75 * inch, 0.42 * inch,
-                                 "Powered by Document OS Engine")
-
-        # --- Title page accent bar ---
-        if is_title_page:
-            # Top accent bar
-            self.setFillColor(colors.HexColor("#1A3A8F"))
-            self.rect(0, 10.75 * inch, 8.5 * inch, 0.25 * inch, fill=True, stroke=False)
-            # Bottom accent bar
-            self.setFillColor(colors.HexColor("#FFC107"))
-            self.rect(0, 0, 8.5 * inch, 0.15 * inch, fill=True, stroke=False)
-
-        self.restoreState()
-
+    return {
+        "display": "Helvetica-Bold",
+        "display_xl": "Helvetica-Bold",
+        "body": "Helvetica",
+        "body_bold": "Helvetica-Bold",
+        "body_semi": "Helvetica-Bold",
+        "mono": "Courier",
+    }
 
 # ---------------------------------------------------------------------------
 # Style Factory
 # ---------------------------------------------------------------------------
 def build_styles(fonts: dict) -> dict:
-    """Create all paragraph styles using brand fonts and colors."""
+    """Create all paragraph styles calibrated for 6.0" x 9.6" compact page format."""
     base = getSampleStyleSheet()
-
     s = {}
 
-    # --- Title Page ---
     s["doc_title"] = ParagraphStyle(
         "DocTitle", parent=base["Heading1"],
-        fontName=fonts["display_xl"], fontSize=28, leading=34,
+        fontName=fonts["display_xl"], fontSize=22, leading=26,
         textColor=C["primary_dark"], alignment=TA_CENTER,
-        spaceAfter=6,
+        spaceAfter=4,
     )
     s["doc_subtitle"] = ParagraphStyle(
         "DocSubtitle", parent=base["Normal"],
-        fontName=fonts["body"], fontSize=13, leading=18,
+        fontName=fonts["body"], fontSize=10.5, leading=14,
         textColor=C["primary"], alignment=TA_CENTER,
-        spaceAfter=10,
+        spaceAfter=8,
     )
     s["doc_version"] = ParagraphStyle(
         "DocVersion", parent=base["Normal"],
-        fontName=fonts["body_semi"], fontSize=10, leading=14,
+        fontName=fonts["body_semi"], fontSize=8.5, leading=12,
         textColor=C["primary_dark"], alignment=TA_CENTER,
-        spaceBefore=4, spaceAfter=4,
+        spaceBefore=2, spaceAfter=2,
     )
     s["doc_author"] = ParagraphStyle(
         "DocAuthor", parent=base["Normal"],
-        fontName=fonts["body"], fontSize=11, leading=15,
+        fontName=fonts["body"], fontSize=9.5, leading=13,
         textColor=C["muted"], alignment=TA_CENTER,
-        spaceBefore=20,
+        spaceBefore=10,
     )
 
-    # --- Chapter Opener ---
     s["chapter_label"] = ParagraphStyle(
         "ChapterLabel", parent=base["Normal"],
-        fontName=fonts["body_semi"], fontSize=10, leading=14,
+        fontName=fonts["body_semi"], fontSize=8.5, leading=12,
         textColor=C["primary"], alignment=TA_CENTER,
-        spaceBefore=0, spaceAfter=4,
+        spaceBefore=0, spaceAfter=2,
     )
     s["chapter_title"] = ParagraphStyle(
         "ChapterTitle", parent=base["Heading1"],
-        fontName=fonts["display"], fontSize=22, leading=28,
+        fontName=fonts["display"], fontSize=16, leading=20,
         textColor=C["primary_dark"], alignment=TA_CENTER,
-        spaceBefore=0, spaceAfter=8,
+        spaceBefore=0, spaceAfter=6,
     )
 
-    # --- Section Headings ---
     s["h1"] = ParagraphStyle(
         "H1Pro", parent=base["Heading1"],
-        fontName=fonts["display"], fontSize=18, leading=23,
-        textColor=C["primary_dark"],
-        spaceBefore=16, spaceAfter=6, keepWithNext=True,
-    )
-    s["h2"] = ParagraphStyle(
-        "H2Pro", parent=base["Heading2"],
-        fontName=fonts["body_bold"], fontSize=14, leading=18,
-        textColor=C["primary"],
-        spaceBefore=14, spaceAfter=5, keepWithNext=True,
-    )
-    s["h3"] = ParagraphStyle(
-        "H3Pro", parent=base["Heading3"],
-        fontName=fonts["body_semi"], fontSize=11.5, leading=16,
+        fontName=fonts["display"], fontSize=14, leading=18,
         textColor=C["primary_dark"],
         spaceBefore=10, spaceAfter=4, keepWithNext=True,
     )
+    s["h2"] = ParagraphStyle(
+        "H2Pro", parent=base["Heading2"],
+        fontName=fonts["body_bold"], fontSize=11, leading=15,
+        textColor=C["primary"],
+        spaceBefore=8, spaceAfter=3, keepWithNext=True,
+    )
+    s["h3"] = ParagraphStyle(
+        "H3Pro", parent=base["Heading3"],
+        fontName=fonts["body_bold"], fontSize=9.5, leading=13,
+        textColor=C["body"],
+        spaceBefore=6, spaceAfter=2, keepWithNext=True,
+    )
 
-    # --- Body Text ---
     s["body"] = ParagraphStyle(
         "BodyPro", parent=base["Normal"],
-        fontName=fonts["body"], fontSize=10, leading=15,
-        textColor=C["body"], alignment=TA_JUSTIFY,
-        spaceAfter=6,
-    )
-    s["body_bold"] = ParagraphStyle(
-        "BodyBold", parent=s["body"],
-        fontName=fonts["body_semi"],
-    )
-    s["body_italic"] = ParagraphStyle(
-        "BodyItalic", parent=s["body"],
-        fontName=fonts["body_italic"],
+        fontName=fonts["body"], fontSize=8.5, leading=12.5,
+        textColor=C["body"], alignment=TA_LEFT,
+        spaceBefore=2, spaceAfter=4,
     )
     s["body_center"] = ParagraphStyle(
-        "BodyCenter", parent=s["body"],
-        alignment=TA_CENTER,
+        "BodyCenter", parent=s["body"], alignment=TA_CENTER
+    )
+    s["body_bold"] = ParagraphStyle(
+        "BodyBold", parent=s["body"], fontName=fonts["body_bold"]
     )
 
-    # --- Bullet ---
     s["bullet"] = ParagraphStyle(
         "BulletPro", parent=s["body"],
-        leftIndent=18, firstLineIndent=-12,
-        spaceAfter=4,
+        leftIndent=12, firstLineIndent=-8,
+        spaceBefore=1, spaceAfter=2,
     )
     s["bullet_num"] = ParagraphStyle(
-        "BulletNum", parent=s["body"],
-        leftIndent=18, firstLineIndent=-14,
-        spaceAfter=4,
+        "BulletNumPro", parent=s["body"],
+        leftIndent=14, firstLineIndent=-10,
+        spaceBefore=1, spaceAfter=2,
     )
 
-    # --- Code ---
-    s["code"] = ParagraphStyle(
-        "CodePro", parent=base["Code"],
-        fontName=fonts["mono"], fontSize=8.5, leading=12,
-        textColor=colors.HexColor("#991B1B"),
-        backColor=C["bg_panel"],
-        borderPadding=4,
-    )
-
-    # --- Table Cells ---
-    s["th"] = ParagraphStyle(
-        "TableHeader", parent=base["Normal"],
-        fontName=fonts["body_semi"], fontSize=8.5, leading=12,
-        textColor=colors.white,
-    )
-    s["td"] = ParagraphStyle(
-        "TableCell", parent=base["Normal"],
-        fontName=fonts["body"], fontSize=8.5, leading=12,
-        textColor=C["body"],
-    )
-
-    # --- Callout ---
     s["callout"] = ParagraphStyle(
-        "Callout", parent=base["Normal"],
-        fontName=fonts["body_italic"], fontSize=9.5, leading=14,
-        textColor=colors.HexColor("#0369A1"),
+        "CalloutPro", parent=base["Normal"],
+        fontName=fonts["body"], fontSize=8, leading=11.5,
+        textColor=C["body"], spaceBefore=0, spaceAfter=0,
     )
     s["callout_title"] = ParagraphStyle(
-        "CalloutTitle", parent=base["Normal"],
-        fontName=fonts["body_semi"], fontSize=9, leading=12,
-        textColor=C["primary"],
-        spaceAfter=2,
+        "CalloutTitlePro", parent=base["Normal"],
+        fontName=fonts["body_bold"], fontSize=8.5, leading=12,
+        textColor=C["primary_dark"], spaceBefore=0, spaceAfter=2,
     )
 
-    # --- Footer Meta ---
+    s["code"] = ParagraphStyle(
+        "CodePro", parent=base["Code"],
+        fontName=fonts["mono"], fontSize=7.5, leading=10.5,
+        textColor=colors.HexColor("#1F2937"),
+        spaceBefore=0, spaceAfter=0,
+    )
+
+    s["th"] = ParagraphStyle(
+        "THPro", parent=base["Normal"],
+        fontName=fonts["body_bold"], fontSize=7.5, leading=10.5,
+        textColor=C["white"], alignment=TA_LEFT,
+    )
+    s["td"] = ParagraphStyle(
+        "TDPro", parent=base["Normal"],
+        fontName=fonts["body"], fontSize=7.5, leading=10.5,
+        textColor=C["body"], alignment=TA_LEFT,
+    )
+
     s["footer_meta"] = ParagraphStyle(
         "FooterMeta", parent=base["Normal"],
-        fontName=fonts["body_italic"], fontSize=8,
+        fontName=fonts["body"], fontSize=7, leading=9.5,
         textColor=C["muted"], alignment=TA_CENTER,
     )
 
     return s
 
-
 # ---------------------------------------------------------------------------
-# Reusable Components
+# Layout Helpers
 # ---------------------------------------------------------------------------
-def make_callout(text: str, title: str, styles: dict,
-                 variant: str = "tip") -> Table:
-    """Create a branded callout box."""
+def make_callout(text: str, title: str, styles: dict, variant: str = "tip") -> Table:
+    """Create a compact branded callout box fitted to 4.9 inch printable width."""
     colors_map = {
         "tip":     (C["primary"],  C["callout_tip_bg"]),
         "warning": (C["warning"],  C["callout_warn_bg"]),
@@ -362,21 +280,20 @@ def make_callout(text: str, title: str, styles: dict,
         Paragraph(f"<b>{title}</b>", styles["callout_title"]),
         Paragraph(text, styles["callout"]),
     ]
-    t = Table([[content]], colWidths=[7.0 * inch])
+    t = Table([[content]], colWidths=[PRINTABLE_WIDTH])
     t.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), bg_c),
-        ("LINEBEFORE", (0, 0), (0, -1), 4, border_c),
-        ("TOPPADDING", (0, 0), (-1, -1), 8),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-        ("LEFTPADDING", (0, 0), (-1, -1), 12),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+        ("LINEBEFORE", (0, 0), (0, -1), 3.5, border_c),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
         ("BOX", (0, 0), (-1, -1), 0.5, C["border"]),
     ]))
     return t
 
-
 def make_table(headers: list, rows: list, col_widths: list, styles: dict) -> Table:
-    """Create a branded data table."""
+    """Create a branded data table fitted to 4.9 inch printable width."""
     data = [[Paragraph(f"<b>{h}</b>", styles["th"]) for h in headers]]
     for row in rows:
         data.append([Paragraph(str(cell), styles["td"]) for cell in row])
@@ -384,49 +301,90 @@ def make_table(headers: list, rows: list, col_widths: list, styles: dict) -> Tab
     t = Table(data, colWidths=col_widths)
     t.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), C["primary"]),
-        ("TOPPADDING", (0, 0), (-1, 0), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
+        ("TOPPADDING", (0, 0), (-1, 0), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 4),
         ("BACKGROUND", (0, 1), (-1, -1), C["white"]),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [C["white"], C["bg_light"]]),
         ("GRID", (0, 0), (-1, -1), 0.5, C["border"]),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 6),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-        ("TOPPADDING", (0, 1), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 1), (-1, -1), 5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 5),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+        ("TOPPADDING", (0, 1), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 1), (-1, -1), 4),
     ]))
     return t
 
-
 def accent_rule():
-    """Gradient-like accent horizontal rule."""
     return HRFlowable(
-        width="100%", thickness=2,
+        width=PRINTABLE_WIDTH, thickness=1.5,
         color=colors.HexColor("#FFC107"),
-        spaceAfter=8, spaceBefore=4,
+        spaceAfter=6, spaceBefore=3,
     )
 
 def thin_rule():
     return HRFlowable(
-        width="100%", thickness=0.5,
+        width=PRINTABLE_WIDTH, thickness=0.4,
         color=C["border"],
-        spaceAfter=6, spaceBefore=6,
+        spaceAfter=4, spaceBefore=4,
     )
 
+# ---------------------------------------------------------------------------
+# Page Decoration Callbacks (Preserves Links & Anchors)
+# ---------------------------------------------------------------------------
+def make_page_decorators(fonts: dict):
+    def draw_first_page(c: canvas.Canvas, doc):
+        c.saveState()
+        # Top accent bar
+        c.setFillColor(colors.HexColor("#1A3A8F"))
+        c.rect(0, PAGE_HEIGHT - 0.18 * inch, PAGE_WIDTH, 0.18 * inch, fill=True, stroke=False)
+        # Bottom accent bar
+        c.setFillColor(colors.HexColor("#FFC107"))
+        c.rect(0, 0, PAGE_WIDTH, 0.12 * inch, fill=True, stroke=False)
+        c.restoreState()
+
+    def draw_later_pages(c: canvas.Canvas, doc):
+        c.saveState()
+        page_num = c.getPageNumber()
+        body_font = fonts.get("body", "Helvetica")
+
+        # Running header text & rule
+        c.setFont(body_font, 7)
+        c.setFillColor(colors.HexColor("#6B7280"))
+        c.drawString(MARGIN, PAGE_HEIGHT - 0.38 * inch,
+                     "AI Agents Document OS — Comprehensive User Guide v4.0")
+        c.setStrokeColor(colors.HexColor("#DEE2E6"))
+        c.setLineWidth(0.4)
+        c.line(MARGIN, PAGE_HEIGHT - 0.44 * inch, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 0.44 * inch)
+
+        # Running footer rule & text
+        c.line(MARGIN, 0.50 * inch, PAGE_WIDTH - MARGIN, 0.50 * inch)
+
+        c.setFont(body_font, 7.5)
+        c.setFillColor(colors.HexColor("#6B7280"))
+        c.drawCentredString(PAGE_WIDTH / 2.0, 0.35 * inch, f"Page {page_num}")
+
+        c.setFont(body_font, 6.5)
+        c.setFillColor(colors.HexColor("#9CA3AF"))
+        c.drawString(MARGIN, 0.35 * inch, "© Ekpo Otu, Ph.D. • linktr.ee/ekpootu")
+        c.drawRightString(PAGE_WIDTH - MARGIN, 0.35 * inch, "AI Agents Document OS")
+
+        c.restoreState()
+
+    return draw_first_page, draw_later_pages
 
 # ---------------------------------------------------------------------------
-# Document Content — Comprehensive Guide v3
+# Document Builder
 # ---------------------------------------------------------------------------
 def build_guide(output_path: Path, fonts: dict, styles: dict):
-    """Build the complete Document OS Comprehensive Guide v3."""
+    """Build the complete AI Agents Document OS Comprehensive Guide v4.0."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     doc = SimpleDocTemplate(
         str(output_path),
-        pagesize=letter,
-        leftMargin=0.75 * inch, rightMargin=0.75 * inch,
-        topMargin=0.75 * inch, bottomMargin=0.75 * inch,
-        title="Antigravity Document OS — Comprehensive User Guide v3.0",
+        pagesize=PAGE_SIZE,
+        leftMargin=MARGIN, rightMargin=MARGIN,
+        topMargin=MARGIN, bottomMargin=MARGIN,
+        title="AI Agents Document OS — Comprehensive User Guide v4.0",
         author="Ekpo Otu, Ph.D.",
         subject="Universal Document Operating System for AI Agents",
     )
@@ -434,170 +392,163 @@ def build_guide(output_path: Path, fonts: dict, styles: dict):
     story = []
 
     # ============================================================
-    # TITLE PAGE
+    # TITLE PAGE (Tight, elegant, zero excess white space)
     # ============================================================
-    story.append(Spacer(1, 1.8 * inch))
-    story.append(Paragraph(
-        "Antigravity Document<br/>Operating System",
-        styles["doc_title"]
-    ))
-    story.append(Spacer(1, 0.15 * inch))
-    story.append(accent_rule())
-    story.append(Paragraph(
-        "Comprehensive User Guide &amp; Practical Operational Manual",
-        styles["doc_subtitle"]
-    ))
     story.append(Spacer(1, 0.3 * inch))
+    story.append(Paragraph("AI Agents Document<br/>Operating System", styles["doc_title"]))
+    story.append(Spacer(1, 0.08 * inch))
+    story.append(accent_rule())
+    story.append(Paragraph("Comprehensive User Guide &amp; Practical Operational Manual", styles["doc_subtitle"]))
+    story.append(Spacer(1, 0.10 * inch))
 
-    # Version badge as a mini table
     badge_t = Table(
-        [[Paragraph("<b>VERSION 3.0</b>", ParagraphStyle(
-            "badge", fontName=fonts["body_semi"], fontSize=9,
+        [[Paragraph("<b>OFFICIAL VERSION 4.0</b>", ParagraphStyle(
+            "badge", fontName=fonts["body_semi"], fontSize=8,
             textColor=colors.HexColor("#0D1B4C"), alignment=TA_CENTER,
         ))]],
-        colWidths=[1.5 * inch],
+        colWidths=[1.6 * inch],
     )
     badge_t.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFC107")),
+        ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#D99B00")),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-        ("TOPPADDING", (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ("LEFTPADDING", (0, 0), (-1, -1), 12),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 12),
     ]))
-    badge_wrapper = Table([[badge_t]], colWidths=[7.0 * inch])
+    badge_wrapper = Table([[badge_t]], colWidths=[PRINTABLE_WIDTH])
     badge_wrapper.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER")]))
     story.append(badge_wrapper)
 
-    story.append(Spacer(1, 1.5 * inch))
-    story.append(Paragraph(
-        "The Engineering Standard for Reliable AI Document Operations",
-        styles["body_center"]
-    ))
-    story.append(Spacer(1, 0.2 * inch))
+    story.append(Spacer(1, 0.25 * inch))
+
+    # Hero image if available
+    hero_path = Path("docs/assets/hero_banner.jpg")
+    if hero_path.exists():
+        story.append(Image(str(hero_path), width=PRINTABLE_WIDTH, height=2.2 * inch))
+        story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("The Engineering Standard for Reliable AI Document Operations", styles["body_center"]))
+    story.append(Spacer(1, 0.08 * inch))
     story.append(thin_rule())
-    story.append(Spacer(1, 0.4 * inch))
+    story.append(Spacer(1, 0.10 * inch))
     story.append(Paragraph(
         "E K P O&nbsp;&nbsp;&nbsp;O T U ,&nbsp;&nbsp;&nbsp;P h . D .",
         ParagraphStyle("author_spaced", fontName=fonts["body"],
-                        fontSize=11, leading=15, textColor=C["muted"],
+                        fontSize=9.5, leading=13, textColor=C["muted"],
                         alignment=TA_CENTER, spaceBefore=0)
     ))
-    story.append(Spacer(1, 0.1 * inch))
+    story.append(Spacer(1, 0.05 * inch))
     story.append(Paragraph(
         '<a href="https://linktr.ee/ekpootu" color="#1A3A8F">linktr.ee/ekpootu</a>',
         ParagraphStyle("author_link", fontName=fonts["body"],
-                        fontSize=9, leading=13, textColor=C["primary"],
+                        fontSize=8, leading=11, textColor=C["primary"],
                         alignment=TA_CENTER)
     ))
 
     story.append(PageBreak())
 
     # ============================================================
-    # TABLE OF CONTENTS
+    # TABLE OF CONTENTS (Clickable Anchors & Compact Layout)
     # ============================================================
-    story.append(Spacer(1, 0.5 * inch))
+    story.append(Spacer(1, 0.15 * inch))
     story.append(Paragraph("Table of Contents", styles["h1"]))
     story.append(accent_rule())
 
     toc_items = [
-        ("1.", "Welcome: What is the Document Operating System?"),
-        ("2.", "Quickstart: How to Use Document OS Every Day"),
-        ("3.", "The 5-Stage Safety Pipeline"),
-        ("4.", "Understanding Your Workspace & Global Deployment"),
-        ("5.", "Quick Reference CLI Command Cheat Sheet"),
-        ("6.", "The Zero Unintentional Data Loss Guarantee"),
-        ("7.", "Cross-Harness Freedom: Claude Code, OpenCode, Cursor"),
-        ("8.", "Brand Identity & Professional Document Styling"),
-        ("9.", "About the Author"),
+        ("ch1", "Chapter 1", "Welcome: What is the AI Agents Document OS?"),
+        ("ch2", "Chapter 2", "Quickstart: Daily High-Fidelity Operations"),
+        ("ch3", "Chapter 3", "The 5-Stage Deterministic Safety Pipeline"),
+        ("ch4", "Chapter 4", "Workspace Architecture & Global Deployment"),
+        ("ch5", "Chapter 5", "CLI Command Reference & Automated Tooling"),
+        ("ch6", "Chapter 6", "The Zero Unintentional Data Loss Guarantee"),
+        ("ch7", "Chapter 7", "Cross-Harness Freedom: Claude, OpenCode & Cursor"),
+        ("ch8", "Chapter 8", "Brand Identity, Web Design & Copywriting Skills"),
+        ("ch9", "Author",    "About the Author & Community Ecosystem"),
     ]
-    for num, title in toc_items:
-        story.append(Paragraph(
-            f'<b>{num}</b>&nbsp;&nbsp;{title}',
-            ParagraphStyle("toc_item", fontName=fonts["body"],
-                            fontSize=11, leading=20, textColor=C["body"],
-                            leftIndent=20)
+
+    toc_rows = []
+    for anchor, label, title in toc_items:
+        link_col = Paragraph(f'<a href="#{anchor}" color="#1A3A8F"><b>{label}</b>: {title}</a>', styles["td"])
+        arrow_col = Paragraph(f'<a href="#{anchor}" color="#1A3A8F"><b>Jump →</b></a>', ParagraphStyle(
+            "toc_jump", parent=styles["td"], alignment=TA_RIGHT
         ))
+        toc_rows.append([link_col, arrow_col])
+
+    toc_table = Table(toc_rows, colWidths=[4.1 * inch, 0.8 * inch])
+    toc_table.setStyle(TableStyle([
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ("LEFTPADDING", (0, 0), (-1, -1), 2),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 2),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.3, colors.HexColor("#F1F5F9")),
+    ]))
+    story.append(toc_table)
+
+    story.append(Spacer(1, 0.2 * inch))
+    story.append(make_callout(
+        "Every chapter title in this Table of Contents is clickable. Click any item above to navigate directly "
+        "to that operational section in this interactive guide.",
+        "INTERACTIVE HYPERLINKS", styles, "tip"
+    ))
+
     story.append(PageBreak())
 
     # ============================================================
     # CHAPTER 1: Welcome
     # ============================================================
-    story.append(Spacer(1, 2.0 * inch))
-    story.append(Paragraph("CHAPTER 1", styles["chapter_label"]))
-    story.append(Paragraph("Welcome: What is the<br/>Document Operating System?", styles["chapter_title"]))
-    story.append(HRFlowable(width=2*inch, thickness=2, color=C["accent"],
-                             spaceAfter=20, spaceBefore=8, hAlign="CENTER"))
-    story.append(Spacer(1, 0.3 * inch))
+    story.append(Spacer(1, 0.15 * inch))
+    story.append(Paragraph('<a name="ch1"/>CHAPTER 1', styles["chapter_label"]))
+    story.append(Paragraph("Welcome: What is the<br/>AI Agents Document OS?", styles["chapter_title"]))
+    story.append(HRFlowable(width=1.8*inch, thickness=1.5, color=C["accent"],
+                             spaceAfter=12, spaceBefore=4, hAlign="CENTER"))
 
     story.append(Paragraph(
         'If you have ever asked an AI assistant to <i>"read this PDF"</i>, <i>"edit this spreadsheet"</i>, or '
-        '<i>"fix this PowerPoint presentation"</i>, you might have noticed that things often go wrong. Standard AI agents '
-        'frequently hallucinate missing information, accidentally erase vital mathematical formulas in Excel, break '
-        'document margins, or deliver files that won\'t even open.',
+        '<i>"fix this PowerPoint presentation"</i>, you know the frustration. Standard LLM agents frequently '
+        'hallucinate missing data, silently strip mathematical formulas in Excel, destroy corporate formatting, '
+        'or generate corrupt files that fail to open.',
         styles["body"]
     ))
     story.append(Paragraph(
-        '<b>Document OS is your AI agent\'s reliable co-pilot.</b> Think of it as an automated safety suite, forensic '
-        'reader, and quality inspector all in one. It gives your Antigravity agent the specialized knowledge and precision '
-        'tools needed to work with real documents — without making mistakes or deleting your data.',
+        '<b>AI Agents Document OS is your agent\'s reliable co-pilot.</b> It provides a deterministic safety suite, '
+        'forensic inspection engine, and quality auditor in one cohesive architecture. Your agent gains the specialized '
+        'protocols needed to process real documents with zero data loss.',
         styles["body"]
     ))
 
     story.append(make_callout(
-        "You do not need to memorize complex terminal commands or write Python code! "
-        "Simply talk to your Antigravity agent in plain English. Document OS works automatically "
-        "behind the scenes to safeguard your documents.",
-        "NOVICE FRIENDLY", styles, "tip"
+        "You do not need to memorize terminal flags or write complex code. Simply speak to your agent in plain English. "
+        "AI Agents Document OS triages file structures and applies safety protections automatically.",
+        "AUTONOMOUS & NOVICE FRIENDLY", styles, "tip"
     ))
-    story.append(Spacer(1, 0.15 * inch))
-
-    # Hero image if available
-    hero_path = Path("docs/assets/hero_banner.jpg")
-    if hero_path.exists():
-        story.append(Image(str(hero_path), width=7.0 * inch, height=3.2 * inch))
-        story.append(Spacer(1, 8))
 
     story.append(PageBreak())
 
     # ============================================================
     # CHAPTER 2: Quickstart
     # ============================================================
-    story.append(Spacer(1, 2.0 * inch))
-    story.append(Paragraph("CHAPTER 2", styles["chapter_label"]))
-    story.append(Paragraph("Quickstart: How to Use<br/>Document OS Every Day", styles["chapter_title"]))
-    story.append(HRFlowable(width=2*inch, thickness=2, color=C["accent"],
-                             spaceAfter=20, spaceBefore=8, hAlign="CENTER"))
-    story.append(Spacer(1, 0.3 * inch))
+    story.append(Spacer(1, 0.15 * inch))
+    story.append(Paragraph('<a name="ch2"/>CHAPTER 2', styles["chapter_label"]))
+    story.append(Paragraph("Quickstart: Daily High-Fidelity Operations", styles["chapter_title"]))
+    story.append(HRFlowable(width=1.8*inch, thickness=1.5, color=C["accent"],
+                             spaceAfter=12, spaceBefore=4, hAlign="CENTER"))
 
     story.append(Paragraph(
-        "Using Document OS requires zero technical wizardry. When you converse with your Antigravity agent, "
-        "the system automatically detects when you are dealing with files. Here are the 5 most common everyday "
-        "scenarios and how to prompt your agent:",
+        "When you collaborate with your agent, Document OS automatically detects target file types. "
+        "Here are the 5 core everyday scenarios and how to prompt your agent:",
         styles["body"]
     ))
-    story.append(Spacer(1, 6))
 
     use_case_table = make_table(
-        ["What You Want to Do", "What You Prompt", "What Document OS Does"],
+        ["Action", "Sample Prompt", "Document OS Protection"],
         [
-            ["<b>Read &amp; Summarize a PDF</b>",
-             '<i>"Read the 2024 Annual Report and summarize key revenue figures."</i>',
-             "Checks if PDF is digital or scanned, extracts tables cleanly."],
-            ["<b>Edit an Excel Spreadsheet</b>",
-             '<i>"Update Q3 projections with 5% increase. Keep formulas intact."</i>',
-             "Loads workbook with formula preservation. Runs automated QA."],
-            ["<b>Convert Formats Safely</b>",
-             '<i>"Convert this Word proposal into a presentation-ready PDF."</i>',
-             "Uses headless LibreOffice for 100% fidelity conversion."],
-            ["<b>Create a Slide Deck</b>",
-             '<i>"Turn these notes into a 5-slide PowerPoint in 16:9 layout."</i>',
-             "Builds slides with word wrap, applies master templates."],
-            ["<b>Extract from Scanned Images</b>",
-             '<i>"Extract vendor name, date, and total from this receipt."</i>',
-             "Applies contrast sharpening, deskewing, then OCR extraction."],
+            ["<b>Read PDF</b>", '<i>"Read the 2024 Audit and summarize revenue."</i>', "Identifies digital vs scanned layers; extracts tables cleanly."],
+            ["<b>Edit XLSX</b>", '<i>"Update Q3 projections by 5%. Preserve formulas."</i>', "Loads workbook with formula graph guard; runs post-QA."],
+            ["<b>Convert Doc</b>", '<i>"Convert proposal.docx into a presentation PDF."</i>', "Uses headless LibreOffice for 100% layout fidelity."],
+            ["<b>Slide Deck</b>", '<i>"Build a 5-slide PowerPoint in 16:9 layout."</i>', "Applies master templates with word-wrap overflow guard."],
+            ["<b>Scanned OCR</b>", '<i>"Extract vendor name and total from receipt.png."</i>', "Applies adaptive sharpening and deskewing before OCR."],
         ],
-        [1.5 * inch, 2.5 * inch, 3.0 * inch],
+        [1.1 * inch, 1.8 * inch, 2.0 * inch],
         styles,
     )
     story.append(use_case_table)
@@ -605,132 +556,111 @@ def build_guide(output_path: Path, fonts: dict, styles: dict):
     # Pipeline infographic if available
     pipeline_path = Path("docs/assets/pipeline_infographic.jpg")
     if pipeline_path.exists():
-        story.append(Spacer(1, 10))
-        story.append(Paragraph("The Automated Safety Pipeline", styles["h3"]))
-        story.append(Image(str(pipeline_path), width=7.0 * inch, height=3.0 * inch))
+        story.append(Spacer(1, 0.12 * inch))
+        story.append(Image(str(pipeline_path), width=PRINTABLE_WIDTH, height=2.1 * inch))
 
     story.append(PageBreak())
 
     # ============================================================
     # CHAPTER 3: 5-Stage Pipeline
     # ============================================================
-    story.append(Spacer(1, 2.0 * inch))
-    story.append(Paragraph("CHAPTER 3", styles["chapter_label"]))
-    story.append(Paragraph("The 5-Stage Safety Pipeline", styles["chapter_title"]))
-    story.append(HRFlowable(width=2*inch, thickness=2, color=C["accent"],
-                             spaceAfter=20, spaceBefore=8, hAlign="CENTER"))
-    story.append(Spacer(1, 0.3 * inch))
+    story.append(Spacer(1, 0.15 * inch))
+    story.append(Paragraph('<a name="ch3"/>CHAPTER 3', styles["chapter_label"]))
+    story.append(Paragraph("The 5-Stage Deterministic Safety Pipeline", styles["chapter_title"]))
+    story.append(HRFlowable(width=1.8*inch, thickness=1.5, color=C["accent"],
+                             spaceAfter=12, spaceBefore=4, hAlign="CENTER"))
 
     story.append(Paragraph(
-        "To ensure zero accidental data loss, every document task passes through a rigorous 5-stage engineering "
-        "pipeline. Each stage is systematically checked before returning results to you:",
+        "Every document task passes through a 5-stage engineering pipeline to guarantee absolute fidelity:",
         styles["body"]
     ))
 
     pipeline_table = make_table(
-        ["Stage", "Action", "Tool / Helper", "Quality Objective"],
+        ["Stage", "Action", "Tool / Helper", "Fidelity Target"],
         [
-            ["<b>1. Triage</b>", "Preflight structural analysis", "<code>inspect_doc.py</code>",
-             "Determines if PDF is digital or scanned. Counts sheets and formulas. Checks slide aspect ratios."],
-            ["<b>2. Route</b>", "Specialist protocol selection", "<code>document-router</code>",
-             "Selects the exact safe library (openpyxl with formula-protect, pdfplumber for grids, python-docx for styles)."],
-            ["<b>3. Execute</b>", "Deterministic processing", "<code>extract_doc.py</code><br/><code>convert_doc.py</code>",
-             "Carries out the operation using pre-tested tools rather than hallucinated code."],
-            ["<b>4. Render</b>", "Visual preview generation", "<code>render_doc.py</code>",
-             "Converts pages to high-res PNG images so the agent can visually verify layout."],
-            ["<b>5. QA Audit</b>", "Integrity &amp; error check", "<code>qa_doc.py</code>",
-             "Scans for broken formulas (#REF!, #DIV/0!), confirms files open cleanly."],
+            ["<b>1. Triage</b>", "Structural inspection", "<code>inspect_doc.py</code>", "Detects digital text, counts formulas, checks aspect ratio."],
+            ["<b>2. Route</b>", "Protocol selection", "<code>document-router</code>", "Selects verified parser (openpyxl, pdfplumber, python-docx)."],
+            ["<b>3. Execute</b>", "Deterministic runs", "<code>extract_doc.py</code><br/><code>convert_doc.py</code>", "Executes tested CLI commands without impromptu scripts."],
+            ["<b>4. Render</b>", "Visual verification", "<code>render_doc.py</code>", "Converts pages to high-res PNGs for vision inspection."],
+            ["<b>5. QA Audit</b>", "Integrity validation", "<code>qa_doc.py</code>", "Scans for formula errors (#REF!, #DIV/0!) and broken XML."],
         ],
-        [0.85 * inch, 1.3 * inch, 1.45 * inch, 3.4 * inch],
+        [0.8 * inch, 1.1 * inch, 1.2 * inch, 1.8 * inch],
         styles,
     )
     story.append(pipeline_table)
-    story.append(Spacer(1, 10))
+    story.append(Spacer(1, 0.12 * inch))
 
     story.append(make_callout(
-        "The 5-stage pipeline runs automatically — you never need to invoke these tools manually. "
-        "Your Antigravity agent's Document Router skill triggers each stage in the correct order based "
-        "on the file type and your request.",
-        "HOW IT WORKS", styles, "success"
+        "The 5-stage pipeline runs automatically. The Master Document Router triages structure and sequences "
+        "the exact safe tools required for each file format.",
+        "PIPELINE AUTOMATION", styles, "success"
     ))
 
     story.append(PageBreak())
 
     # ============================================================
-    # CHAPTER 4: Workspace & Deployment
+    # CHAPTER 4: Workspace Architecture & Global Deployment
     # ============================================================
-    story.append(Spacer(1, 2.0 * inch))
-    story.append(Paragraph("CHAPTER 4", styles["chapter_label"]))
-    story.append(Paragraph("Understanding Your Workspace<br/>&amp; Global Deployment", styles["chapter_title"]))
-    story.append(HRFlowable(width=2*inch, thickness=2, color=C["accent"],
-                             spaceAfter=20, spaceBefore=8, hAlign="CENTER"))
-    story.append(Spacer(1, 0.3 * inch))
+    story.append(Spacer(1, 0.15 * inch))
+    story.append(Paragraph('<a name="ch4"/>CHAPTER 4', styles["chapter_label"]))
+    story.append(Paragraph("Workspace Architecture &amp;<br/>Global Deployment", styles["chapter_title"]))
+    story.append(HRFlowable(width=1.8*inch, thickness=1.5, color=C["accent"],
+                             spaceAfter=12, spaceBefore=4, hAlign="CENTER"))
 
     story.append(Paragraph(
-        "Document OS is installed in two complementary locations for total flexibility:",
+        "AI Agents Document OS is deployed in two complementary tiers:",
         styles["body"]
     ))
     story.append(Paragraph(
         '• <b>Local Workspace</b> (<code>.agents/plugins/document-os/</code>): '
-        'Ready to run in your current project. Commit to Git so your entire team shares the same document rules.',
+        'Directly integrated into your project repository. Shares deterministic rules with your entire engineering team.',
         styles["bullet"]
     ))
     story.append(Paragraph(
-        '• <b>Global Deployment</b> (<code>~/.gemini/config/plugins/document-os/</code>): '
-        'Installed into your Antigravity user profile. Every project automatically enjoys Document OS superpowers.',
+        '• <b>Global User Profile</b> (<code>~/.gemini/config/plugins/document-os/</code>): '
+        'Installed into your user profile so every agent session across all directories inherits Document OS capabilities.',
         styles["bullet"]
     ))
-    story.append(Spacer(1, 8))
+    story.append(Spacer(1, 0.08 * inch))
 
-    story.append(Paragraph("Cross-Harness Freedom", styles["h2"]))
+    story.append(Paragraph("Universal Agent Compatibility", styles["h2"]))
     story.append(Paragraph(
-        "You are never locked into a single AI tool! Document OS adheres to open Agent Skills standards. "
-        "Run the included exporter to deploy across all your development environments:",
+        "Document OS strictly adheres to open agent specifications. Export seamlessly with one command:",
         styles["body"]
     ))
+    story.append(Paragraph('<code>.\\export_cross_harness.ps1 -Target All</code>', styles["code"]))
     story.append(Paragraph(
-        '<code>.\\export_cross_harness.ps1 -Target All</code>',
-        styles["code"]
-    ))
-    story.append(Paragraph(
-        "This bridges your Document OS skills into <b>Claude Code</b>, <b>OpenCode CLI</b>, and <b>Cursor</b>.",
+        "This establishes full compatibility with <b>Google Antigravity</b>, <b>Claude Code</b>, <b>OpenCode CLI</b>, and <b>Cursor</b>.",
         styles["body"]
     ))
 
     story.append(PageBreak())
 
     # ============================================================
-    # CHAPTER 5: CLI Cheat Sheet
+    # CHAPTER 5: CLI Command Reference
     # ============================================================
-    story.append(Spacer(1, 2.0 * inch))
-    story.append(Paragraph("CHAPTER 5", styles["chapter_label"]))
-    story.append(Paragraph("Quick Reference<br/>CLI Command Cheat Sheet", styles["chapter_title"]))
-    story.append(HRFlowable(width=2*inch, thickness=2, color=C["accent"],
-                             spaceAfter=20, spaceBefore=8, hAlign="CENTER"))
-    story.append(Spacer(1, 0.3 * inch))
+    story.append(Spacer(1, 0.15 * inch))
+    story.append(Paragraph('<a name="ch5"/>CHAPTER 5', styles["chapter_label"]))
+    story.append(Paragraph("CLI Command Reference &amp;<br/>Automated Tooling", styles["chapter_title"]))
+    story.append(HRFlowable(width=1.8*inch, thickness=1.5, color=C["accent"],
+                             spaceAfter=12, spaceBefore=4, hAlign="CENTER"))
 
     story.append(Paragraph(
-        "For power users, automated scripts, or terminal workflows, execute CLI tools directly:",
+        "For CI/CD pipelines, automated scripts, or terminal workflows, use the deterministic CLI helpers:",
         styles["body"]
     ))
 
     cli_table = make_table(
-        ["Command", "What It Does", "Output / Benefit"],
+        ["Command", "Description", "Output / Guarantee"],
         [
-            ["<code>python inspect_doc.py &lt;file&gt;</code>",
-             "Analyzes any document format.", "Returns JSON with page count, sheet names, formula count."],
-            ["<code>python extract_doc.py &lt;file&gt; --type tables</code>",
-             "Pulls tabular data from files.", "Outputs clean Markdown tables for reports."],
-            ["<code>python convert_doc.py input.docx output.pdf</code>",
-             "Headless cross-format conversion.", "Vector-perfect without font degradation."],
-            ["<code>python render_doc.py deck.pptx --outdir ./previews</code>",
-             "Renders slides/pages as PNGs.", "Vision models can visually QA alignment."],
-            ["<code>python ocr_doc.py scan.png --output text.txt</code>",
-             "Tesseract OCR with image sharpening.", "Extracts text from low-contrast scans."],
-            ["<code>python qa_doc.py model.xlsx</code>",
-             "Safety audit for broken formulas.", "Asserts 0 errors (#REF!, #DIV/0!) and integrity."],
+            ["<code>inspect_doc.py &lt;file&gt;</code>", "Deep structural triage.", "JSON metadata (pages, sheets, formulas, fonts)."],
+            ["<code>extract_doc.py &lt;file&gt; --tables</code>", "Extracts tabular data.", "Clean Markdown tables ready for LLM processing."],
+            ["<code>convert_doc.py in.docx out.pdf</code>", "Headless conversion.", "Pixel-perfect conversion via LibreOffice/Pandoc."],
+            ["<code>render_doc.py deck.pptx --outdir ./img</code>", "Renders slides/pages to PNG.", "Visual artifacts for multi-modal agent inspection."],
+            ["<code>ocr_doc.py receipt.png --output txt</code>", "Tesseract adaptive OCR.", "Pre-processed text extraction with contrast boost."],
+            ["<code>qa_doc.py model.xlsx</code>", "Pre/post integrity check.", "Asserts 0 formula errors (#REF!, #DIV/0!)."],
         ],
-        [2.2 * inch, 2.2 * inch, 2.6 * inch],
+        [1.6 * inch, 1.5 * inch, 1.8 * inch],
         styles,
     )
     story.append(cli_table)
@@ -740,71 +670,64 @@ def build_guide(output_path: Path, fonts: dict, styles: dict):
     # ============================================================
     # CHAPTER 6: Zero Data Loss Guarantee
     # ============================================================
-    story.append(Spacer(1, 2.0 * inch))
-    story.append(Paragraph("CHAPTER 6", styles["chapter_label"]))
+    story.append(Spacer(1, 0.15 * inch))
+    story.append(Paragraph('<a name="ch6"/>CHAPTER 6', styles["chapter_label"]))
     story.append(Paragraph("The Zero Unintentional<br/>Data Loss Guarantee", styles["chapter_title"]))
-    story.append(HRFlowable(width=2*inch, thickness=2, color=C["accent"],
-                             spaceAfter=20, spaceBefore=8, hAlign="CENTER"))
-    story.append(Spacer(1, 0.3 * inch))
+    story.append(HRFlowable(width=1.8*inch, thickness=1.5, color=C["accent"],
+                             spaceAfter=12, spaceBefore=4, hAlign="CENTER"))
 
     story.append(Paragraph(
-        "Every developer's greatest fear is an AI agent running a destructive command and permanently "
-        "deleting work. Document OS implements three strict behavioral safeguards:",
+        "Document OS implements three non-negotiable architectural guarantees to safeguard your critical files:",
         styles["body"]
     ))
     story.append(Paragraph(
-        '1.&nbsp;&nbsp;<b>Read-Only by Default</b>: The agent never modifies an original file in place without '
-        'creating a versioned duplicate (e.g., <code>report_v2.docx</code>) unless you explicitly request it.',
+        '1.&nbsp;&nbsp;<b>Read-Only Default</b>: The agent never mutates an original document in-place unless '
+        'explicitly commanded. Output is written to distinct versions (e.g., <code>budget_v2.xlsx</code>).',
         styles["bullet_num"]
     ))
     story.append(Paragraph(
-        '2.&nbsp;&nbsp;<b>Formula Protection</b>: If an Excel file contains formulas, the agent is strictly '
-        'forbidden from replacing them with static numbers.',
+        '2.&nbsp;&nbsp;<b>Formula Integrity Guard</b>: Dynamic calculation trees (`=SUM`, `=VLOOKUP`) are '
+        'protected from being overwritten by static numerical values.',
         styles["bullet_num"]
     ))
     story.append(Paragraph(
-        '3.&nbsp;&nbsp;<b>Mandatory Self-Audit</b>: The agent cannot report a task as "Complete" until '
-        '<code>qa_doc.py</code> validates the resulting file is 100% corruption-free.',
+        '3.&nbsp;&nbsp;<b>Mandatory Post-Execution QA</b>: No operation is marked "Complete" until '
+        '<code>qa_doc.py</code> validates file health, XML syntax, and rendering integrity.',
         styles["bullet_num"]
     ))
+    story.append(Spacer(1, 0.1 * inch))
 
-    story.append(Spacer(1, 12))
     story.append(make_callout(
-        "These safety guarantees are encoded as agent rules in <code>GEMINI.md</code>, "
-        "<code>AGENTS.md</code>, and <code>document-safety.md</code>. They are enforced "
-        "automatically — you don't need to remember or configure them.",
-        "SAFETY GUARANTEE", styles, "warning"
+        "These rules are hardcoded into AGENTS.md, GEMINI.md, and document-safety.md, providing "
+        "an unbreakable guardrail across all agent harnesses.",
+        "ENGINEERED INTEGRITY", styles, "warning"
     ))
 
     story.append(PageBreak())
 
     # ============================================================
-    # CHAPTER 7: Cross-Harness
+    # CHAPTER 7: Cross-Harness Freedom
     # ============================================================
-    story.append(Spacer(1, 2.0 * inch))
-    story.append(Paragraph("CHAPTER 7", styles["chapter_label"]))
-    story.append(Paragraph("Cross-Harness Freedom:<br/>Claude Code, OpenCode, Cursor", styles["chapter_title"]))
-    story.append(HRFlowable(width=2*inch, thickness=2, color=C["accent"],
-                             spaceAfter=20, spaceBefore=8, hAlign="CENTER"))
-    story.append(Spacer(1, 0.3 * inch))
+    story.append(Spacer(1, 0.15 * inch))
+    story.append(Paragraph('<a name="ch7"/>CHAPTER 7', styles["chapter_label"]))
+    story.append(Paragraph("Cross-Harness Freedom:<br/>Claude, OpenCode &amp; Cursor", styles["chapter_title"]))
+    story.append(HRFlowable(width=1.8*inch, thickness=1.5, color=C["accent"],
+                             spaceAfter=12, spaceBefore=4, hAlign="CENTER"))
 
     story.append(Paragraph(
-        "Document OS is built on open standards that work across multiple AI agent platforms:",
+        "Seamlessly portable across all major AI coding platforms with identical safety guarantees:",
         styles["body"]
     ))
 
     compat_table = make_table(
-        ["Platform", "Installation Path", "Export Command"],
+        ["Platform", "Configuration Path", "Integration Method"],
         [
-            ["<b>Google Antigravity</b>", "<code>.agents/plugins/document-os/</code>", "Native — no export needed"],
-            ["<b>Claude Code</b>", "<code>~/.claude/skills/document-os/</code>",
-             "<code>.\\export_cross_harness.ps1 -Target ClaudeCode</code>"],
-            ["<b>OpenCode CLI</b>", "<code>~/.config/opencode/skills/</code>",
-             "<code>.\\export_cross_harness.ps1 -Target OpenCode</code>"],
-            ["<b>Cursor</b>", "<code>.cursor/skills/document-os/</code>",
-             "<code>.\\export_cross_harness.ps1 -Target Cursor</code>"],
+            ["<b>Google Antigravity</b>", "<code>.agents/plugins/document-os/</code>", "Native plug-and-play."],
+            ["<b>Claude Code</b>", "<code>~/.claude/skills/document-os/</code>", "Export via <code>export_cross_harness.ps1</code>."],
+            ["<b>OpenCode CLI</b>", "<code>~/.config/opencode/skills/</code>", "Export via <code>export_cross_harness.ps1</code>."],
+            ["<b>Cursor IDE</b>", "<code>.cursor/skills/document-os/</code>", "Export via <code>export_cross_harness.ps1</code>."],
         ],
-        [1.4 * inch, 2.6 * inch, 3.0 * inch],
+        [1.3 * inch, 1.8 * inch, 1.8 * inch],
         styles,
     )
     story.append(compat_table)
@@ -812,39 +735,29 @@ def build_guide(output_path: Path, fonts: dict, styles: dict):
     story.append(PageBreak())
 
     # ============================================================
-    # CHAPTER 8: Brand Identity & Styling
+    # CHAPTER 8: Brand Identity, Web Design & Copywriting Skills
     # ============================================================
-    story.append(Spacer(1, 2.0 * inch))
-    story.append(Paragraph("CHAPTER 8", styles["chapter_label"]))
-    story.append(Paragraph("Brand Identity &amp;<br/>Professional Document Styling", styles["chapter_title"]))
-    story.append(HRFlowable(width=2*inch, thickness=2, color=C["accent"],
-                             spaceAfter=20, spaceBefore=8, hAlign="CENTER"))
-    story.append(Spacer(1, 0.3 * inch))
+    story.append(Spacer(1, 0.15 * inch))
+    story.append(Paragraph('<a name="ch8"/>CHAPTER 8', styles["chapter_label"]))
+    story.append(Paragraph("Brand Identity, Web Design<br/>&amp; Copywriting Skills", styles["chapter_title"]))
+    story.append(HRFlowable(width=1.8*inch, thickness=1.5, color=C["accent"],
+                             spaceAfter=12, spaceBefore=4, hAlign="CENTER"))
 
     story.append(Paragraph(
-        "Document OS v3.0 introduces a built-in <b>Brand Identity Skill</b> that enforces consistent visual "
-        "standards across all generated documents and web pages. The brand system includes:",
+        "Version 4.0 introduces an integrated creative suite to ensure generated artifacts look and read like "
+        "commercial-grade products:",
         styles["body"]
     ))
-    story.append(Paragraph("• <b>Color Palette</b>: Royal Blue (#1A3A8F), Golden Yellow (#FFC107), Deep Navy (#0D1B4C)", styles["bullet"]))
-    story.append(Paragraph("• <b>Typography</b>: Playfair Display for headings, Source Sans 3 for body text, JetBrains Mono for code", styles["bullet"]))
-    story.append(Paragraph("• <b>Page Layout</b>: KDP-compliant margins, chapter opener formatting, running headers and footers", styles["bullet"]))
-    story.append(Paragraph("• <b>Web Tokens</b>: CSS custom properties for consistent web page styling", styles["bullet"]))
+    story.append(Paragraph("• <b>Brand Identity Skill</b>: Royal Blue (#1A3A8F), Golden Yellow (#FFC107), and Navy (#0D1B4C) palette.", styles["bullet"]))
+    story.append(Paragraph("• <b>Web Design Skill</b>: Synthesizes designmd.ai tokens, neuform.ai depth, and dribbble.com card patterns.", styles["bullet"]))
+    story.append(Paragraph("• <b>Copywriting Skill</b>: Adopts the top-ranked skills.sh standard for high-converting headlines and CTAs.", styles["bullet"]))
+    story.append(Paragraph("• <b>1.6:1 Publication Standard</b>: Enforces Amazon KDP book aspect ratio with hyperlinked navigation.", styles["bullet"]))
 
-    story.append(Spacer(1, 8))
-    story.append(Paragraph(
-        "The brand tokens are stored in a machine-readable JSON file at "
-        "<code>.agents/skills/brand-identity/resources/brand-tokens.json</code> "
-        "and can be consumed by any script or template in the Document OS ecosystem.",
-        styles["body"]
-    ))
-
-    story.append(Spacer(1, 8))
+    story.append(Spacer(1, 0.1 * inch))
     story.append(make_callout(
-        "This very guide was generated using the Brand Identity Skill and the professional PDF engine "
-        "in <code>build_professional_pdf.py</code>. Every element — from the chapter openers to the callout "
-        "boxes to the table styling — follows the brand tokens defined in the skill.",
-        "DOGFOODED", styles, "success"
+        "This official guide is dogfooded proof: generated with the v4.0 PDF engine, embedded Google Fonts, "
+        "clickable anchors, and the strict 1.6:1 height-to-width ratio.",
+        "DOGFOODED STANDARD", styles, "success"
     ))
 
     story.append(PageBreak())
@@ -852,86 +765,75 @@ def build_guide(output_path: Path, fonts: dict, styles: dict):
     # ============================================================
     # ABOUT THE AUTHOR
     # ============================================================
-    story.append(Spacer(1, 2.0 * inch))
-    story.append(Paragraph("About the Author", styles["h1"]))
+    story.append(Spacer(1, 0.15 * inch))
+    story.append(Paragraph('<a name="ch9"/>About the Author', styles["h1"]))
     story.append(accent_rule())
-    story.append(Spacer(1, 0.2 * inch))
 
     story.append(Paragraph(
-        '<b>Ekpo Otu, Ph.D.</b> is a Computer Professional, Full Stack Developer, '
-        'Researcher, Author, and Lecturer with a passion for using computational technology '
-        'to solve real-world problems. His work spans AI and machine learning, agentic systems, '
-        'document engineering, and open-source tooling.',
+        '<b>Ekpo Otu, Ph.D.</b> is a Computer Professional, Full Stack Developer, Researcher, Author, '
+        'and Lecturer dedicated to applying computational intelligence to solve real-world problems. '
+        'His work focuses on autonomous agent architectures, reliable document engineering, and open-source tooling.',
         styles["body"]
     ))
-    story.append(Spacer(1, 12))
+    story.append(Spacer(1, 0.1 * inch))
 
     links_table = make_table(
-        ["Platform", "Link"],
+        ["Channel", "URL"],
         [
-            ["Author Bio &amp; Links", '<a href="https://linktr.ee/ekpootu" color="#1A3A8F">linktr.ee/ekpootu</a>'],
-            ["GitHub", '<a href="https://github.com/ekpootu" color="#1A3A8F">github.com/ekpootu</a>'],
-            ["Support This Project", '<a href="https://www.buymeacoffee.com/ekpootu" color="#1A3A8F">buymeacoffee.com/ekpootu</a>'],
+            ["Author Bio &amp; Projects", '<a href="https://linktr.ee/ekpootu" color="#1A3A8F">linktr.ee/ekpootu</a>'],
+            ["GitHub Repository", '<a href="https://github.com/ekpootu" color="#1A3A8F">github.com/ekpootu</a>'],
+            ["Support Development", '<a href="https://www.buymeacoffee.com/ekpootu" color="#1A3A8F">buymeacoffee.com/ekpootu</a>'],
         ],
-        [2.0 * inch, 5.0 * inch],
+        [1.6 * inch, 3.3 * inch],
         styles,
     )
     story.append(links_table)
 
-    story.append(Spacer(1, 0.5 * inch))
+    story.append(Spacer(1, 0.15 * inch))
 
-    # Support box
     support_box = Table(
         [[
             Paragraph(
-                '☕ <b>Support Open-Source Document Engineering</b><br/><br/>'
-                'Document OS is completely free and open source under the MIT License. '
-                'If this project saved your financial models, corporate decks, or client contracts '
-                'from being shredded by an AI agent, consider fueling ongoing development!<br/><br/>'
-                '<b><a href="https://www.buymeacoffee.com/ekpootu" color="#1A3A8F">'
-                'buymeacoffee.com/ekpootu</a></b>',
+                '☕ <b>Fuel Open-Source Document Engineering</b><br/><br/>'
+                'AI Agents Document OS is 100% free and open source under the MIT License. '
+                'If this system saved your financial spreadsheets or corporate decks from agent destruction, '
+                'consider fueling ongoing maintenance!<br/><br/>'
+                '<b><a href="https://www.buymeacoffee.com/ekpootu" color="#1A3A8F">buymeacoffee.com/ekpootu</a></b>',
                 ParagraphStyle("support_text", fontName=fonts["body"],
-                                fontSize=10, leading=16, textColor=C["body"],
+                                fontSize=8.5, leading=13, textColor=C["body"],
                                 alignment=TA_CENTER)
             )
         ]],
-        colWidths=[6.0 * inch],
+        colWidths=[PRINTABLE_WIDTH],
     )
     support_box.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFF8E1")),
-        ("BOX", (0, 0), (-1, -1), 1.5, C["accent"]),
-        ("TOPPADDING", (0, 0), (-1, -1), 20),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 20),
-        ("LEFTPADDING", (0, 0), (-1, -1), 24),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 24),
+        ("BOX", (0, 0), (-1, -1), 1.2, C["accent"]),
+        ("TOPPADDING", (0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+        ("LEFTPADDING", (0, 0), (-1, -1), 12),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 12),
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
     ]))
-    support_wrapper = Table([[support_box]], colWidths=[7.0 * inch])
-    support_wrapper.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER")]))
-    story.append(support_wrapper)
+    story.append(support_box)
 
-    story.append(Spacer(1, 0.5 * inch))
+    story.append(Spacer(1, 0.12 * inch))
     story.append(thin_rule())
     story.append(Paragraph(
-        '<i>Antigravity Document Operating System (Document OS) • User Guide v3.0 • Licensed under MIT</i>',
+        '<i>AI Agents Document Operating System (Document OS) • User Guide v4.0 • MIT Licensed</i>',
         styles["footer_meta"]
     ))
 
-    # --- Build ---
-    def canvas_maker(*args, **kwargs):
-        return ProfessionalCanvas(*args, fonts=fonts, **kwargs)
-
-    doc.build(story, canvasmaker=canvas_maker)
+    # --- Build Document with Callbacks ---
+    draw_first, draw_later = make_page_decorators(fonts)
+    doc.build(story, onFirstPage=draw_first, onLaterPages=draw_later)
     print(f"\n[OK] Successfully generated professional PDF: {output_path}")
 
-
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 def main():
     print("=" * 60)
-    print("  Antigravity Document OS — Professional PDF Builder v3")
+    print("  AI Agents Document OS — Professional PDF Builder v4")
     print("  Brand: Royal Blue • Golden Yellow • Deep Navy")
+    print("  Dimensions: 6.0\" x 9.6\" (1.6:1 Aspect Ratio)")
     print("  Author: Ekpo Otu, Ph.D.")
     print("=" * 60)
 
@@ -945,9 +847,8 @@ def main():
 
     print("\n[3/3] Generating PDF...")
     output = Path(sys.argv[1]) if len(sys.argv) > 1 else \
-             Path("docs/Antigravity_Document_OS_Comprehensive_Guide_v3.pdf")
+             Path("docs/AI_Agents_Document_OS_Comprehensive_Guide_v4.pdf")
     build_guide(output, fonts, styles)
-
 
 if __name__ == "__main__":
     main()

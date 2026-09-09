@@ -1,4 +1,4 @@
-# 📄 Antigravity Document Operating System (Document OS)
+# 📄 AI Agents Document Operating System (Document OS)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Antigravity Compatible](https://img.shields.io/badge/Antigravity-Plugins-purple.svg)](https://cloud.google.com)
@@ -12,7 +12,7 @@
 
 ---
 
-## 🛑 The Pain: Why Document Operations in AI Agents Break
+## 🛑 Why Document Operations in AI Agents Break
 
 Every developer who has asked an AI agent to *"Analyze this Excel sheet"*, *"Convert this PDF to Word"*, or *"Update this corporate slide deck"* knows the sinking feeling:
 
@@ -24,7 +24,7 @@ Every developer who has asked an AI agent to *"Analyze this Excel sheet"*, *"Con
 
 ---
 
-## 💡 The Solution: A True Document Operating System
+## 💡 A Deterministic Operating System for Documents
 
 Instead of relying on LLM memory to write raw, one-off scripts, **Document OS** introduces an engineering-grade operating system for documents:
 
@@ -110,9 +110,9 @@ python .agents/plugins/document-os/scripts/qa_doc.py final_budget.xlsx
 
 ## 📖 Dogfooded Official Guide
 
-We don't just talk about document fidelity; we prove it. The complete 13-page **Antigravity Document OS Comprehensive User Guide v3.0** was generated using our professional PDF engine with embedded Google Fonts (Playfair Display + Source Sans 3), brand-consistent styling, and KDP-quality formatting.
-
-👉 **[Download the Official PDF User Guide v3.0](docs/Antigravity_Document_OS_Comprehensive_Guide_v3.pdf)**
+We don't just talk about document fidelity; we prove it. The complete **AI Agents Document OS Comprehensive User Guide v4.0** was generated using our professional PDF engine with embedded Google Fonts (Playfair Display + Source Sans 3), brand-consistent styling, clickable Table of Contents, 1.6:1 height-to-width ratio, and KDP-quality formatting.
+ 
+👉 **[Download the Official PDF User Guide v4.0](docs/AI_Agents_Document_OS_Comprehensive_Guide_v4.pdf)**
 
 ### Document Generation Engines
 

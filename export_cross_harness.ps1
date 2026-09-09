@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Exports Antigravity Document OS skills to other Agent Harnesses (Claude Code, OpenCode CLI, Cursor).
+    Exports AI Agents Document OS skills to other Agent Harnesses (Claude Code, OpenCode CLI, Cursor).
 
 .PARAMETER Target
     Destination agent harness: ClaudeCode, OpenCode, Universal, or GlobalAntigravity.

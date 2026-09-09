@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Automated Installer and Diagnostic Harness for Antigravity Document Operating System (Document OS) on Windows.
+    Automated Installer and Diagnostic Harness for AI Agents Document Operating System (Document OS) on Windows.
 
 .DESCRIPTION
     1. Validates Python 3.10+ installation.
@@ -25,7 +25,7 @@ param(
 
 $ErrorActionPreference = "Continue"
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "   Antigravity Document Operating System (Document OS)    " -ForegroundColor Cyan
+Write-Host "    AI Agents Document Operating System (Document OS)     " -ForegroundColor Cyan
 Write-Host "              Automated Windows Installer                 " -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
 

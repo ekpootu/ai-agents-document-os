@@ -1,4 +1,4 @@
-# Antigravity Document Operating System (Document OS) Rules
+# AI Agents Document Operating System (Document OS) Rules
 
 When operating in this workspace, treat document processing as an engineering discipline requiring strict integrity, format awareness, and zero-loss guarantees.
 

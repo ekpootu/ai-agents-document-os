@@ -1,4 +1,4 @@
-# Contributing to Antigravity Document OS
+# Contributing to AI Agents Document OS
 
 We are on a mission to bring deterministic engineering standards to AI agent document operations. We welcome contributions from developers, researchers, and agentic workflows enthusiasts.
 
