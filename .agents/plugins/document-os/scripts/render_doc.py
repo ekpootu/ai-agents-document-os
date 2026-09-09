@@ -61,7 +61,26 @@ def render_pdf_to_images(pdf_path: Path, outdir: Path, max_pages: int = 5):
             print(f"Rendered: {f}")
         return rendered_images
 
-    raise RuntimeError("No PDF renderer available. Ensure Poppler is installed.")
+
+    # Fallback 2: PyMuPDF (fitz)
+    try:
+        import fitz  # PyMuPDF
+        doc = fitz.open(str(pdf_path))
+        limit = min(len(doc), max_pages)
+        for idx in range(limit):
+            page = doc[idx]
+            pix = page.get_pixmap(dpi=150)
+            target = outdir / f"{pdf_path.stem}_page_{idx + 1}.png"
+            pix.save(str(target))
+            rendered_images.append(str(target))
+            print(f"Rendered: {target}")
+        doc.close()
+        return rendered_images
+    except Exception as e:
+        print(f"pymupdf notice: {e}. Checking fallback...", file=sys.stderr)
+
+    raise RuntimeError("No PDF renderer available. Ensure Poppler or PyMuPDF is installed.")
+
 
 def main():
     parser = argparse.ArgumentParser(description="Antigravity Visual Document Renderer CLI")
