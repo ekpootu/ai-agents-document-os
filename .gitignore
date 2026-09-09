@@ -1,0 +1,64 @@
+# ============================================
+# Antigravity Document OS — .gitignore
+# ============================================
+
+# Virtual Environment
+.venv-docos/
+.venv/
+venv/
+env/
+.env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# Downloaded Fonts Cache (regenerated automatically)
+.agents/plugins/document-os/scripts/templates/fonts/
+
+# OS-specific
+ehthumbs.db
+ehthumbs_vista.db
+
+# Node (if applicable)
+node_modules/
+npm-debug.log*
+
+# Temp / Scratch
+*.tmp
+*.bak
+scratch/
+
+# Antigravity Internal
+.gemini/
+.system_generated/
+
+# Brand reference images (personal design source files)
+brand-color*.png
+brand-color*.jpeg
+brand-color*.jpg
+font-combo*.jpg
+sample-page*.jpg

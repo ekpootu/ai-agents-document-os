@@ -1,0 +1,357 @@
+/* ==============================================================================
+   Antigravity Document OS — Professional Book / Guide Template
+   CSS Paged Media Stylesheet for WeasyPrint
+   
+   Brand Tokens: Royal Blue (#1A3A8F), Golden Yellow (#FFC107), Deep Navy (#0D1B4C)
+   Fonts: Playfair Display (display), Source Sans 3 (body), JetBrains Mono (code)
+   
+   NOTE: This stylesheet requires WeasyPrint with GTK3/Pango runtime.
+   On Windows without GTK3, the system falls back to ReportLab.
+   ============================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ---- Page Setup (US Letter 8.5 × 11) ---- */
+@page {
+  size: 8.5in 11in;
+  margin: 0.75in;
+
+  @bottom-center {
+    content: counter(page);
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 9pt;
+    color: #6B7280;
+  }
+}
+
+@page :first {
+  @bottom-center { content: none; }
+}
+
+@page chapter-start {
+  @top-left { content: none; }
+  @top-right { content: none; }
+  @bottom-center {
+    content: counter(page);
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 9pt;
+    color: #6B7280;
+  }
+}
+
+/* ---- Global Reset ---- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Source Sans 3', 'Helvetica Neue', sans-serif;
+  font-size: 11pt;
+  line-height: 1.6;
+  color: #212529;
+  orphans: 2;
+  widows: 2;
+}
+
+/* ---- Title Page ---- */
+.title-page {
+  page: chapter-start;
+  break-after: page;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  height: 100%;
+  padding: 2in 0.5in;
+}
+
+.title-page h1 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 32pt;
+  font-weight: 800;
+  color: #0D1B4C;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5in;
+  line-height: 1.2;
+}
+
+.title-page .subtitle {
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: 14pt;
+  font-weight: 400;
+  color: #1A3A8F;
+  margin-bottom: 0.3in;
+}
+
+.title-page .version-badge {
+  display: inline-block;
+  background: #FFC107;
+  color: #0D1B4C;
+  font-weight: 700;
+  font-size: 10pt;
+  padding: 4pt 16pt;
+  border-radius: 12pt;
+  margin-bottom: 1in;
+}
+
+.title-page .author {
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: 12pt;
+  color: #6B7280;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-top: auto;
+}
+
+.title-page .title-rule {
+  width: 3in;
+  height: 2pt;
+  background: linear-gradient(90deg, #1A3A8F, #FFC107);
+  margin: 0.3in auto;
+  border: none;
+}
+
+/* ---- Chapter Opener ---- */
+.chapter-opener {
+  page: chapter-start;
+  break-before: page;
+  padding-top: 2.5in;
+  text-align: center;
+  margin-bottom: 0.5in;
+}
+
+.chapter-opener .chapter-label {
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: 10pt;
+  font-weight: 600;
+  color: #1A3A8F;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 8pt;
+}
+
+.chapter-opener h2 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 24pt;
+  font-weight: 700;
+  color: #0D1B4C;
+  line-height: 1.25;
+  margin-bottom: 12pt;
+}
+
+.chapter-opener .chapter-rule {
+  width: 2in;
+  height: 1.5pt;
+  background: #FFC107;
+  margin: 0 auto;
+  border: none;
+}
+
+/* ---- Headings ---- */
+h1 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 24pt;
+  font-weight: 700;
+  color: #0D1B4C;
+  line-height: 1.25;
+  margin-top: 24pt;
+  margin-bottom: 12pt;
+}
+
+h2 {
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: 16pt;
+  font-weight: 700;
+  color: #1A3A8F;
+  line-height: 1.3;
+  margin-top: 20pt;
+  margin-bottom: 8pt;
+  border-bottom: 1pt solid #DEE2E6;
+  padding-bottom: 4pt;
+}
+
+h3 {
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: 13pt;
+  font-weight: 600;
+  color: #0D1B4C;
+  line-height: 1.4;
+  margin-top: 16pt;
+  margin-bottom: 6pt;
+}
+
+/* ---- Body ---- */
+p {
+  margin-bottom: 8pt;
+  text-align: justify;
+}
+
+p + p {
+  text-indent: 0.3in;
+}
+
+h1 + p, h2 + p, h3 + p, .callout + p, table + p, pre + p {
+  text-indent: 0;
+}
+
+strong {
+  font-weight: 600;
+  color: #0D1B4C;
+}
+
+em {
+  font-style: italic;
+}
+
+/* ---- Lists ---- */
+ul, ol {
+  margin: 6pt 0 10pt 20pt;
+  padding: 0;
+}
+
+li {
+  margin-bottom: 4pt;
+  line-height: 1.5;
+}
+
+/* ---- Callout Boxes ---- */
+.callout {
+  border-left: 4pt solid #1A3A8F;
+  background: #EBF0FA;
+  padding: 12pt 16pt;
+  margin: 12pt 0;
+  border-radius: 0 6pt 6pt 0;
+}
+
+.callout.tip { border-left-color: #1A3A8F; background: #EBF0FA; }
+.callout.warning { border-left-color: #F59E0B; background: #FFF8E1; }
+.callout.danger { border-left-color: #EF4444; background: #FEF2F2; }
+.callout.success { border-left-color: #10B981; background: #ECFDF5; }
+
+.callout-title {
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: 10pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4pt;
+}
+
+.callout.tip .callout-title { color: #1A3A8F; }
+.callout.warning .callout-title { color: #92400E; }
+.callout.danger .callout-title { color: #991B1B; }
+.callout.success .callout-title { color: #065F46; }
+
+.callout p {
+  font-size: 10pt;
+  margin-bottom: 0;
+  text-indent: 0;
+  text-align: left;
+}
+
+/* ---- Tables ---- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12pt 0;
+  font-size: 9pt;
+}
+
+thead th {
+  background: #1A3A8F;
+  color: #FFFFFF;
+  font-weight: 600;
+  text-align: left;
+  padding: 6pt 8pt;
+}
+
+tbody td {
+  padding: 6pt 8pt;
+  border-bottom: 0.5pt solid #DEE2E6;
+  vertical-align: top;
+}
+
+tbody tr:nth-child(even) {
+  background: #F8F9FA;
+}
+
+/* ---- Code Blocks ---- */
+pre {
+  background: #1E293B;
+  color: #E2E8F0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9pt;
+  line-height: 1.5;
+  padding: 12pt 16pt;
+  border-radius: 6pt;
+  margin: 10pt 0;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9pt;
+  background: #F0F2F5;
+  color: #991B1B;
+  padding: 1pt 4pt;
+  border-radius: 3pt;
+}
+
+pre code {
+  background: none;
+  color: inherit;
+  padding: 0;
+}
+
+/* ---- Horizontal Rule ---- */
+hr {
+  border: none;
+  height: 1pt;
+  background: #DEE2E6;
+  margin: 16pt 0;
+}
+
+/* ---- Footer / About Section ---- */
+.about-author {
+  break-before: page;
+  padding-top: 1.5in;
+}
+
+.about-author h2 {
+  text-align: center;
+  border: none;
+  padding-bottom: 0;
+}
+
+.about-author .author-bio {
+  text-align: center;
+  max-width: 5in;
+  margin: 0 auto;
+  font-size: 11pt;
+  line-height: 1.7;
+  color: #6B7280;
+}
+
+.support-box {
+  text-align: center;
+  margin-top: 1in;
+  padding: 20pt;
+  background: #FFF8E1;
+  border: 1pt solid #FFC107;
+  border-radius: 8pt;
+}
+
+.support-box h3 {
+  color: #0D1B4C;
+  margin-bottom: 8pt;
+}
+
+.support-box a {
+  color: #1A3A8F;
+  font-weight: 600;
+  text-decoration: none;
+}
