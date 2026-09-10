@@ -37,7 +37,7 @@ echo "[2/4] Installing Python dependencies..."
 $VENV_PIP install --upgrade pip --quiet
 $VENV_PIP install --quiet \
     pypdf pdfplumber pdf2image pdf2docx pytesseract python-docx \
-    openpyxl xlsxwriter pandas python-pptx Pillow reportlab
+    openpyxl xlsxwriter pandas python-pptx Pillow reportlab weasyprint fonttools
 
 echo "[3/4] Checking system dependencies..."
 for tool in soffice pandoc tesseract pdftoppm; do

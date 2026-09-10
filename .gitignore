@@ -60,9 +60,9 @@ scratch/
 web/
 no-commit/
 
-# Documentation: Only the official comprehensive guide v4 is tracked
+# Documentation: Only the official comprehensive guide v5 is tracked
 docs/*
-!docs/AI_Agents_Document_OS_Comprehensive_Guide_v4.pdf
+!docs/AI_Agents_Document_OS_Comprehensive_Guide_v5.pdf
 
 # Brand reference images (personal design source files)
 brand-color*.png

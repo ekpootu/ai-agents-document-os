@@ -7,7 +7,7 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-☕-yellow.svg)](https://www.buymeacoffee.com/ekpootu)
 
-> **The Universal Document Operating System for AI Agents.**
+> **The Universal Document Operating System for AI Agents.**  
 > Stop LLM document hallucinations, broken spreadsheet formulas, destroyed layouts, and corrupt OOXML files. Give your agents a deterministic, high-fidelity engineering substrate for `.pdf`, `.docx`, `.xlsx`, `.pptx`, `.md`, and OCR.
 
 ---
@@ -52,6 +52,35 @@ graph TD
 
 ---
 
+## 🔰 Beginner's Guide: Where, When & How to Start
+
+If you are new to AI agents or Document OS, here is everything you need to know in plain English:
+
+### 1. Where Does It Run?
+Document OS lives inside your project repository under `.agents/plugins/document-os/`. All scripts execute locally and securely on your computer using Python. No document data or confidential spreadsheets are ever transmitted to third-party cloud servers.
+
+### 2. How to Use Across Different AI Agent Harnesses
+
+| Harness / Tool | How to Activate & Use |
+| :--- | :--- |
+| **Google Antigravity** | Document OS is loaded automatically via `.agents/`. When you ask Antigravity to work on documents, it invokes the `document-router` skill and runs deterministic CLI scripts. |
+| **Claude Code** | Run `.\export_cross_harness.ps1 -Target ClaudeCode` once. Claude Code reads instructions from `.claude/skills/` and executes the scripts seamlessly. |
+| **Cursor / VS Code** | Open your project, activate your virtual environment, and ask Cursor Composer or Chat: *"Use Document OS to inspect invoice.pdf and extract tables into Markdown."* |
+| **OpenCode CLI / Cline / Codex** | OpenCode and Cline automatically discover rules in `AGENTS.md`. Agents follow the standardized execution commands outlined below. |
+
+### 3. Practical Tool Decision Table (When to Run Which Script)
+
+| Your Goal / File Type | CLI Script to Execute | What It Does Under the Hood |
+| :--- | :--- | :--- |
+| **Unknown or new file** | `python .agents/plugins/document-os/scripts/inspect_doc.py <file>` | Detects digital vs scanned PDF, dynamic Excel formulas, Word styles, and slide geometry. |
+| **Extract data or tables** | `python .agents/plugins/document-os/scripts/extract_doc.py <file> --type tables` | Uses `pdfplumber` for tabular data or `openpyxl` for spreadsheets without touching formatting. |
+| **Convert between formats** | `python .agents/plugins/document-os/scripts/convert_doc.py <in> <out>` | Headless LibreOffice / Pandoc conversion with layout preservation. |
+| **Visual QA / Inspection** | `python .agents/plugins/document-os/scripts/render_doc.py <file> --outdir ./previews` | Converts PDF pages or PPTX slides to PNG for visual agent inspection. |
+| **Scanned documents & OCR** | `python .agents/plugins/document-os/scripts/ocr_doc.py <image_or_pdf>` | Extracts text using Tesseract OCR with adaptive image preprocessing. |
+| **Pre-completion Verification**| `python .agents/plugins/document-os/scripts/qa_doc.py <file>` | Audits document for corrupt XML tags, broken formulas (`#REF!`), and broken hyperlinks. |
+
+---
+
 ## 🚀 Quickstart & Installation
 
 ### Option 1: 1-Click Automated Setup (Windows)
@@ -73,16 +102,19 @@ chmod +x install_document_os.sh
 ./install_document_os.sh
 ```
 
-### Option 3: Export to Claude Code or OpenCode
+### Option 3: Cross-Harness Skill Export
 
 ```powershell
+# Export skills to Claude Code
 .\export_cross_harness.ps1 -Target ClaudeCode
+
+# Export skills to OpenCode CLI
 .\export_cross_harness.ps1 -Target OpenCode
 ```
 
 ---
 
-## 🛠️ CLI Helper Commands
+## 🛠️ Core CLI Commands
 
 Document OS provides battle-tested CLI tools ready for agents and humans alike:
 
@@ -110,24 +142,29 @@ python .agents/plugins/document-os/scripts/qa_doc.py final_budget.xlsx
 
 ## 📖 Dogfooded Official Guide
 
-We don't just talk about document fidelity; we prove it. The complete **AI Agents Document OS Comprehensive User Guide v4.0** was generated using our professional PDF engine with embedded Google Fonts (Playfair Display + Source Sans 3), brand-consistent styling, clickable Table of Contents, 1.6:1 height-to-width ratio, and KDP-quality formatting.
- 
-👉 **[Download the Official PDF User Guide v4.0](docs/AI_Agents_Document_OS_Comprehensive_Guide_v4.pdf)**
+We don't just talk about document fidelity; we prove it. The complete **AI Agents Document OS Comprehensive User Guide v5.0** was generated using our professional PDF engine with embedded Google Fonts (Playfair Display + Source Sans 3), brand-consistent styling, clickable Table of Contents, exact 1.6:1 height-to-width ratio, and Amazon KDP publishing-grade formatting.
+
+👉 **[Download the Official PDF User Guide v5.0](docs/AI_Agents_Document_OS_Comprehensive_Guide_v5.pdf)**
 
 ### Document Generation Engines
 
-- **ReportLab** (Primary): Precision PDF generation with embedded fonts, custom layouts, and print-ready output. Used for the v3 guide.
-- **WeasyPrint** (Secondary): CSS Paged Media engine for HTML→PDF conversion. Requires GTK3 runtime on Windows. Falls back to ReportLab if unavailable.
+- **WeasyPrint** (Primary Engine): CSS Paged Media engine for semantic HTML+CSS to PDF compilation. Generates fluid, multi-section page flows without artificial page-break voids, complete with running headers, footers, and Amazon KDP 1.6:1 aspect ratio.
+- **ReportLab** (Secondary Engine): Precision programmatic PDF builder with embedded Google Fonts, custom vector canvases, and automated table formatting. Serves as our zero-dependency, ultra-reliable fallback engine whenever native GTK3 runtimes are absent.
 
 ---
 
 ## 🎨 Brand Identity System
 
-Document OS v3.0 includes a built-in **Brand Identity Skill** that enforces consistent visual standards:
+Document OS includes a built-in **Brand Identity Skill** that enforces consistent visual standards across documents and web interfaces:
 
-- **Colors**: Royal Blue (`#1A3A8F`), Golden Yellow (`#FFC107`), Deep Navy (`#0D1B4C`)
-- **Fonts**: Playfair Display (headings), Source Sans 3 (body), JetBrains Mono (code)
-- **Page Layout**: Amazon KDP-compliant margins and chapter formatting
+- **Colors**:
+  - **Forest Deep Teal**: `#033C45` (Primary brand color)
+  - **Artisan Gold**: `#C6A965` (Accent & highlights)
+  - **Sage Mint**: `#D8ECE9` (Light container background)
+  - **Ivory Parchment**: `#F8F1E9` (Page background & cards)
+  - **Dark Slate Navy**: `#06181B` (Deep typography & dark mode)
+- **Fonts**: Playfair Display (headings), Source Sans 3 (body/interface), JetBrains Mono (code)
+- **Page Layout**: Amazon KDP-compliant margins and fluid section formatting (1.6:1 ratio: `6.0" x 9.6"`)
 - **Design Tokens**: Machine-readable JSON at `.agents/skills/brand-identity/resources/brand-tokens.json`
 
 ---
