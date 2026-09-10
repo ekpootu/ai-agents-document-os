@@ -253,6 +253,10 @@ python .agents/plugins/document-os/scripts/ocr_doc.py receipt.png --output recei
 
 # 6. Validate document integrity & scan for formula errors (#REF!, #DIV/0!)
 python .agents/plugins/document-os/scripts/qa_doc.py final_budget.xlsx
+
+# 7. Workspace bloat prevention & safely purge temporary render previews
+python .agents/plugins/document-os/scripts/clean_workspace.py --dry-run
+python .agents/plugins/document-os/scripts/clean_workspace.py --all --force
 ```
 
 ---
@@ -340,6 +344,89 @@ Here is how Document OS seamlessly integrates into your everyday pair-programmin
   2. Formats dual-column balanced typography with floating figures, tabular benchmarks, and footnote anchoring.
   3. Two-pass engine generates interactive bibliography citations and clickable hyperlink cross-references.
   4. Confirms compliance with IEEE/ACM proceedings format with `qa_doc.py`.
+
+### Scenario 9: Accounts Payable & Invoice-to-PO Reconciliation (Dynamic Formula Engine)
+- **The Problem**: Corporate finance teams must reconcile hundreds of supplier invoice PDFs against master purchase order spreadsheets. Manual checking takes days, while simple AI converters overwrite existing Excel calculation rules.
+- **Your Prompt to Agent**:
+  > *"Reconcile 85 vendor invoices in `invoices/*.pdf` against `Purchase_Orders_Q3.xlsx`. Match line items by SKU, flag discrepancy deltas exceeding 2% in red, recalculate open accruals with `=SUMIF()`, and output a signed audit summary."*
+- **What Document OS Does Behind the Scenes**:
+  1. Executes `extract_doc.py --format tables` across all 85 invoice PDFs into normalized structured DataFrames.
+  2. Matches SKUs, unit quantities, and delivery taxes against `Purchase_Orders_Q3.xlsx`.
+  3. Surgically injects reconciliation flags and recalculates open accruals using the `openpyxl` formula guard without destroying preexisting `=VLOOKUP` and `=SUM` links.
+  4. Generates `Invoice_Audit_Summary.pdf` and runs `qa_doc.py` to confirm zero formula clobber or `#REF!` regressions.
+  5. Delivers non-destructive deliverables: `PO_Reconciliation_Q3.xlsx` and `Invoice_Audit_Summary.pdf`.
+
+### Scenario 10: SEC 10-K Filing Table Extraction & Financial Schema Normalization
+- **The Problem**: Multi-page corporate 10-K and regulatory filings split financial statements across pages with complex footnotes, custom indentations, and negative numbers wrapped in parentheses `(1,240)` that break automated data pipelines.
+- **Your Prompt to Agent**:
+  > *"Inspect `Alphabet_10K_2025.pdf`, extract all multi-page consolidated statements of income and segment revenue tables across pages 45–68, normalize footnote currency annotations, and export into validated JSON schemas."*
+- **What Document OS Does Behind the Scenes**:
+  1. `inspect_doc.py` identifies digital vector tables and calculates coordinate boundaries across page seams.
+  2. `pdfplumber` extracts row matrices, seamlessly stitching multi-page table splits into unified tabular entities.
+  3. Automatically cleans currency strings, converting parenthetical notation `(2,450)` into standard negative floats `-2450.0`.
+  4. Validates column headers against strict Pydantic JSON schemas and produces clean `alphabet_segment_revenue_2025.json` and `consolidated_income.csv`.
+
+### Scenario 11: Architectural CAD/BIM Schedule & Bill of Quantities (BOQ) Estimator
+- **The Problem**: Architecture and engineering drawings export dense schedule tables (door schedules, concrete pours, structural rebar tonnage) into PDF vector plots where ordinary OCR garbles cell borders and misaligns row quantities.
+- **Your Prompt to Agent**:
+  > *"Parse structural drawing `Civic_Center_Phase2_Schedule.pdf`. Extract room finishes, door schedules, and rebar tonnage tables, calculate total material weights with `=SUMPRODUCT()`, and generate an executive estimator workbook."*
+- **What Document OS Does Behind the Scenes**:
+  1. Vector triage identifies native line geometries and text placement vectors from high-resolution CAD exports.
+  2. Reconstructs complex nested schedule tables without clipping text or dropping multi-line schedule notes.
+  3. Generates an executive estimation workbook (`Civic_Center_BOQ_Estimator.xlsx`) populated with live `=SUMPRODUCT()` and unit price matrix formulas.
+  4. Confirms with visual QA rendering that no table labels or schedule quantities are cropped.
+
+### Scenario 12: Clinical Trial Protocol & FDA 510(k) Premarket Submission Assembly
+- **The Problem**: Preparing medical device and pharmaceutical submissions requires fusing Word clinical summaries, Excel biostatistical tables, and PDF CAD schematics into a single publication-grade dossier with sequential Bates stamping and zero blank pages.
+- **Your Prompt to Agent**:
+  > *"Assemble FDA premarket notification package from `executive_summary.docx`, statistical validation tables in `lab_trials.xlsx`, and device schematics in `cad_drawings.pdf`. Enforce 1.6:1 golden ratio, running headers, two-pass TOC, and sequential Bates stamping."*
+- **What Document OS Does Behind the Scenes**:
+  1. Extracts content from Word, Excel, and PDF source files, normalizing styles to corporate design tokens.
+  2. Compiles unified publication dossier via WeasyPrint using CSS Paged Media with exact 1.6:1 golden geometry (`6.0" x 9.6"`).
+  3. Injects running headers, statutory copyright disclaimers, dynamic two-pass Table of Contents, and sequential Bates numbering (`DOC-FDA-0001` to `DOC-FDA-0340`).
+  4. Audits package with `qa_doc.py` to confirm zero blank page spills and 100% hyperlink resolution.
+  5. Delivers publication-ready deliverable: `FDA_510k_Submission_Package.pdf`.
+
+### Scenario 13: Academic Syllabus & Research Preprint Batch Ingestion to Obsidian
+- **The Problem**: Researchers reading dozens of dense academic PDF preprints weekly waste hours copying equations and references into personal knowledge bases (Obsidian, Notion, Logseq).
+- **Your Prompt to Agent**:
+  > *"Ingest 30 dense machine learning papers from `papers/*.pdf`. Extract abstract, methodology math formulas in LaTeX notation, benchmark comparison tables, and author citations into cleanly linked Markdown notes with YAML frontmatter."*
+- **What Document OS Does Behind the Scenes**:
+  1. Triages digital text streams, separating title, author affiliations, abstract, body sections, and footnotes.
+  2. Converts mathematical equation blocks into standard LaTeX delimiters (`$$...$$`), retaining inline Greek letters and matrices.
+  3. Reconstructs benchmark performance tables into clean GFM Markdown grids.
+  4. Generates bidirectional Obsidian wikilinks (`[[Topic]]`) and populates structured YAML frontmatter for instant knowledge graph indexing.
+
+### Scenario 14: Cross-Border Logistics Manifest & Customs Bill of Lading OCR
+- **The Problem**: Maritime logistics and customs clearance require processing crumpled, skewed, or scanned physical bills of lading where optical distortion leads to costly container number and tariff code errors.
+- **Your Prompt to Agent**:
+  > *"Process 40 scanned sea-freight bills of lading and customs clearance declarations. OCR container numbers, harmonized tariff codes (HTS), cargo weights, and country-of-origin stamps, cross-validating weights against vessel load sheets."*
+- **What Document OS Does Behind the Scenes**:
+  1. Pre-processes scanned pages using OpenCV adaptive thresholding, morphological deskewing, and noise removal.
+  2. Executes targeted OCR via Tesseract with specialized character whitelist models for ISO 6346 container IDs and 10-digit HTS tariff codes.
+  3. Cross-compares declared container weights against master vessel load sheets.
+  4. Compiles audited, verified manifest spreadsheet: `Customs_Manifest_Audit.xlsx`.
+
+### Scenario 15: Corporate M&A Virtual Data Room (VDR) Batch Due Diligence Indexing
+- **The Problem**: During corporate acquisitions, deal teams are dumped with thousands of confidential contracts, presentations, and capitalization tables with no unified index or clause-level visibility.
+- **Your Prompt to Agent**:
+  > *"Catalog and triage 250 confidential contracts, board presentations, and cap tables in `vdr_archive/`. Tag confidentiality tier, detect change-of-control clauses, flag uncapped liability terms, and compile an executive M&A due diligence briefing."*
+- **What Document OS Does Behind the Scenes**:
+  1. Automated master router scans all files across Word (`.docx`), PDF, Excel (`.xlsx`), and PowerPoint (`.pptx`).
+  2. Classifies each document by business domain, governing law jurisdiction, and confidentiality rating.
+  3. Surgically extracts high-risk clauses (change of control, non-compete, uncapped indemnity) into structured rows.
+  4. Compiles an executive summary deck `Executive_Briefing_Deck.pptx` and an interactive Excel audit index `MA_Due_Diligence_Index.xlsx`.
+
+### Scenario 16: Multilingual Handbook Localization & Layout-Preserved Retranslation
+- **The Problem**: Translating corporate handbooks and manuals into multiple languages using conventional tools corrupts table cell widths, splits bulleted lists across pages, and breaks corporate font branding.
+- **Your Prompt to Agent**:
+  > *"Translate `Employee_Handbook_2026.docx` into Spanish, Japanese, and German. Maintain exact corporate branding styles, table cell dimensions, page breaks, and embedded callout geometries without text truncation."*
+- **What Document OS Does Behind the Scenes**:
+  1. Deconstructs the OOXML Word DOM, extracting translatable paragraph runs while locking layout geometries and style IDs.
+  2. Reassembles each translated language stream into its exact corresponding XML node with CJK font-fallback mappings.
+  3. Adjusts table cell margins to prevent text wrapping overruns in verbose languages.
+  4. Validates output with `qa_doc.py` to confirm zero schema corruption or unclosed XML tags across all three localized editions.
+  5. Delivers 3 clean files: `Employee_Handbook_2026_ES.docx`, `Employee_Handbook_2026_JA.docx`, and `Employee_Handbook_2026_DE.docx`.
 
 ---
 

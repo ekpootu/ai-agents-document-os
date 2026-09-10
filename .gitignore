@@ -47,22 +47,24 @@ ehthumbs_vista.db
 node_modules/
 npm-debug.log*
 
-# Temp / Scratch
+# Temp & Ephemeral Renders (Workspace Bloat Prevention)
 *.tmp
 *.bak
-scratch/
+previews/
+scratch/pdf_renders/
 
 # Antigravity Internal
 .gemini/
 .system_generated/
 
 # Excluded User Deliverables & Working Folders
-web/
 no-commit/
 
-# Documentation: Only the official comprehensive guide v5 is tracked
+# Documentation & Assets
 docs/*
 !docs/AI_Agents_Document_OS_Comprehensive_Guide_v5.pdf
+!docs/assets/
+!docs/assets/**
 
 # Brand reference images (personal design source files)
 brand-color*.png
@@ -70,4 +72,3 @@ brand-color*.jpeg
 brand-color*.jpg
 font-combo*.jpg
 sample-page*.jpg
-
