@@ -60,11 +60,23 @@ scratch/pdf_renders/
 # Excluded User Deliverables & Working Folders
 no-commit/
 
+# Private Developer Management Skills (Super Developer use only)
+.agents/skills/dashboard-design/
+.agents/skills/github-repository-manager/
+.agents/skills/web-design/
+.claude/skills/dashboard-design/
+.claude/skills/web-design/
+github_setup.md
+
+# Private Web Application & Admin CMS Suite
+web/
+
+# Private Design & Extracted Image Assets
+extra/extracted_assets/
+
 # Documentation & Assets
 docs/*
 !docs/AI_Agents_Document_OS_Comprehensive_Guide_v5.pdf
-!docs/assets/
-!docs/assets/**
 
 # Brand reference images (personal design source files)
 brand-color*.png
