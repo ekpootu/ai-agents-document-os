@@ -301,6 +301,46 @@ Here is how Document OS seamlessly integrates into your everyday pair-programmin
   3. `pdfplumber` reconstructs the coordinate grid into clean tabular rows.
   4. Exports verified data cleanly into `medical_expenses.csv`.
 
+### Scenario 5: Legal Contract Redlining & Clause Updating (Zero Style Loss)
+- **The Problem**: Agents modifying Word contracts (`.docx`) routinely obliterate paragraph styles, numbered legal outline hierarchies, and corporate header templates.
+- **Your Prompt to Agent**:
+  > *"Review `Master_Services_Agreement_2026.docx`, update payment terms to Net 45 in Section 4.2, and flag indemnification clauses without altering styles."*
+- **What Document OS Does Behind the Scenes**:
+  1. `inspect_doc.py` parses OOXML paragraph styles, font tables, and numbering structures.
+  2. The agent surgically modifies the specific clause using the `python-docx` XML preservation pipeline.
+  3. Audits output with `qa_doc.py` to confirm zero schema corruption and verify that header/footer geometry remains intact.
+  4. Delivers clean, non-destructive file: `Master_Services_Agreement_v2.docx`.
+
+### Scenario 6: Automated Multi-Tenant Invoice Batching (100+ PDFs/Sec)
+- **The Problem**: Generating high-volume customer invoices with AI often results in layout drift, missing vector logos, and unpredictable page splits across tenants.
+- **Your Prompt to Agent**:
+  > *"Generate 500 branded customer invoice PDFs from `billing_records.json` using our corporate palette and dynamic barcode placement."*
+- **What Document OS Does Behind the Scenes**:
+  1. Validates input JSON records against schema standards to prevent empty data exceptions.
+  2. Spawns headless WeasyPrint/ReportLab worker threads with pre-compiled CSS Paged Media brand tokens.
+  3. Embeds SVG vector logos, itemized tax computations, dynamic QR codes, and KDP-compliant margins.
+  4. Batch QA runner validates all 500 generated PDFs with zero overflow errors.
+
+### Scenario 7: Regulatory Compliance & HIPAA Patient PII Redaction (Zero Leakage)
+- **The Problem**: Simply drawing black rectangles over text in PDF viewers leaves underlying digital text in the file stream, causing catastrophic data and compliance breaches.
+- **Your Prompt to Agent**:
+  > *"Redact patient names, SSNs, and medical record numbers from `patient_history_audit.pdf` and verify no hidden metadata remains."*
+- **What Document OS Does Behind the Scenes**:
+  1. Extracts precise vector bounding-box coordinates for all sensitive PII patterns using regex stream analysis.
+  2. Permanently burns vector redaction shapes into the PDF stream, completely excising the underlying text objects from the binary AST.
+  3. Runs deep forensic inspection via `qa_doc.py` to confirm zero residual searchable text or hidden stream remnants.
+  4. Outputs verified sanitization: `patient_history_redacted.pdf`.
+
+### Scenario 8: Academic Publishing & Conference Paper Typesetting (LaTeX Standard)
+- **The Problem**: Compiling research papers with mathematical proofs and dual-column layouts using generic markdown tools causes broken equations and awkward page-bottom voids.
+- **Your Prompt to Agent**:
+  > *"Typeset `quantum_computing_paper.md` into a two-column conference proceedings PDF with LaTeX equations and numbered references."*
+- **What Document OS Does Behind the Scenes**:
+  1. Parses Markdown and LaTeX mathematical equations into structured AST representation via Pandoc/ReportLab.
+  2. Formats dual-column balanced typography with floating figures, tabular benchmarks, and footnote anchoring.
+  3. Two-pass engine generates interactive bibliography citations and clickable hyperlink cross-references.
+  4. Confirms compliance with IEEE/ACM proceedings format with `qa_doc.py`.
+
 ---
 
 
