@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """
-build_professional_pdf.py — AI Agents Document OS Professional PDF Builder (v5.0)
+build_professional_pdf.py — AI Agents Document OS Professional PDF Builder (v6.0)
 
 Generates an Amazon KDP-standard, publishing-quality PDF guide with:
 - Dual-Engine Architecture: WeasyPrint (Primary) with ReportLab (Fallback)
-- Exact 1.6:1 height-to-width ratio (6.0 in x 9.6 in)
+- Classical Golden Ratio Proportion: 1:1.618 (6.0 in x 9.71 in)
 - Embedded Google Fonts: Playfair Display Bold + Source Sans 3 + JetBrains Mono
-- Fluid Sections: Eliminates arbitrary page breaks, allowing continuous content flow
-- Table of Contents: Interactive clickable anchors with clean section numbers (No "Jump →")
+- Fluid Sections: Continuous content flow with zero artificial page break voids
+- Interactive Table of Contents: Clickable anchors with clean section numbers
 - Brand Palette: Deep Forest Teal (#033C45), Artisan Gold (#C6A965), Sage Mint (#D8ECE9), Ivory Parchment (#F8F1E9)
 - Copywriting: Built on the SPARK Framework (Situation, Problem, Action, Result, Key Takeaway)
+- Multimodal Sourcing: Guidance for Nanobanana Pro, Imagen 3, Pexels, and Pixabay
+- Plain English Standard: Clear, friendly, accessible language free of intimidating technical jargon
 - Author: Ekpo Otu, Ph.D. — https://linktr.ee/ekpootu
 """
 
@@ -45,16 +47,17 @@ except Exception:
     WEASYPRINT_AVAILABLE = False
 
 # ---------------------------------------------------------------------------
-# Page Dimensions: Exact 1.6:1 Height-to-Width Ratio (Amazon KDP Standard)
+# Page Dimensions: The Classical Golden Ratio (1:1.618)
 # ---------------------------------------------------------------------------
+GOLDEN_RATIO = 1.6180339887
 PAGE_WIDTH = 6.0 * inch
-PAGE_HEIGHT = 9.6 * inch  # 6.0 * 1.6 = 9.6 inches
+PAGE_HEIGHT = PAGE_WIDTH * GOLDEN_RATIO  # 6.0 * 1.618034 = 9.7082 inches (698.99 pt)
 PAGE_SIZE = (PAGE_WIDTH, PAGE_HEIGHT)
 MARGIN = 0.55 * inch
-PRINTABLE_WIDTH = PAGE_WIDTH - 2 * MARGIN  # 4.9 inches
+PRINTABLE_WIDTH = PAGE_WIDTH - 2 * MARGIN  # 4.90 inches (~352.8 pt)
 
 # ---------------------------------------------------------------------------
-# Brand Identity Tokens (teal, gold, mint, ivory, dark navy)
+# Brand Identity Tokens (Forest Teal, Artisan Gold, Mint, Ivory, Dark Navy)
 # ---------------------------------------------------------------------------
 BRAND = {
     "primary": "#033C45",       # Forest Deep Teal
@@ -99,60 +102,40 @@ def _download_font(name: str, url: str) -> Path | None:
     if target.exists():
         return target
     try:
-        print(f"  Downloading font: {name}...")
+        print(f"  Downloading font {name}...")
         urllib.request.urlretrieve(url, str(target))
         return target
     except Exception as e:
         print(f"  Warning: Could not download {name}: {e}")
         return None
 
-def register_fonts():
-    fonts_available = True
-    for name, url in GOOGLE_FONT_URLS.items():
-        p = _download_font(name, url)
-        if not p or not p.exists():
-            fonts_available = False
+def register_fonts() -> dict:
+    playfair_bold = _download_font("PlayfairDisplay-Bold", GOOGLE_FONT_URLS["PlayfairDisplay-Bold"])
+    sourcesans_reg = _download_font("SourceSans3-Regular", GOOGLE_FONT_URLS["SourceSans3-Regular"])
 
-    if fonts_available:
+    registered = {"display": "Helvetica-Bold", "body": "Helvetica", "mono": "Courier"}
+
+    if playfair_bold and playfair_bold.exists():
         try:
-            display_path = FONT_DIR / "PlayfairDisplay-Bold.ttf"
-            body_path = FONT_DIR / "SourceSans3-Regular.ttf"
+            pdfmetrics.registerFont(TTFont("PlayfairDisplay-Bold", str(playfair_bold)))
+            registered["display"] = "PlayfairDisplay-Bold"
+        except Exception:
+            pass
 
-            pdfmetrics.registerFont(TTFont("PlayfairDisplay-Bold", str(display_path)))
-            pdfmetrics.registerFont(TTFont("SourceSans3-Regular", str(body_path)))
-
-            pdfmetrics.registerFontFamily(
-                "SourceSans3",
-                normal="SourceSans3-Regular",
-                bold="SourceSans3-Regular",
-                italic="SourceSans3-Regular",
-                boldItalic="SourceSans3-Regular",
-            )
-            pdfmetrics.registerFontFamily(
-                "PlayfairDisplay",
-                normal="PlayfairDisplay-Bold",
-                bold="PlayfairDisplay-Bold",
-                italic="PlayfairDisplay-Bold",
-                boldItalic="PlayfairDisplay-Bold",
-            )
-            return {
-                "display": "PlayfairDisplay-Bold",
-                "display_xl": "PlayfairDisplay-Bold",
-                "body": "SourceSans3-Regular",
-                "body_bold": "SourceSans3-Regular",
-                "body_semi": "SourceSans3-Regular",
-                "mono": "Courier",
-            }
-        except Exception as e:
-            print(f"  Font registration warning: {e}, using Helvetica fallback")
+    if sourcesans_reg and sourcesans_reg.exists():
+        try:
+            pdfmetrics.registerFont(TTFont("SourceSans3-Regular", str(sourcesans_reg)))
+            registered["body"] = "SourceSans3-Regular"
+        except Exception:
+            pass
 
     return {
-        "display": "Helvetica-Bold",
-        "display_xl": "Helvetica-Bold",
-        "body": "Helvetica",
-        "body_bold": "Helvetica-Bold",
-        "body_semi": "Helvetica-Bold",
-        "mono": "Courier",
+        "display": registered["display"],
+        "display_xl": registered["display"],
+        "body": registered["body"],
+        "body_bold": registered["display"] if registered["display"] != "Helvetica-Bold" else "Helvetica-Bold",
+        "body_semi": registered["display"] if registered["display"] != "Helvetica-Bold" else "Helvetica-Bold",
+        "mono": registered["mono"],
     }
 
 # ---------------------------------------------------------------------------
@@ -395,7 +378,7 @@ def section_divider():
     )
 
 # ---------------------------------------------------------------------------
-# Custom Canvas for Two-Pass Page Numbering & Links
+# Custom Canvas for Two-Pass Page Numbering & Running Decorators
 # ---------------------------------------------------------------------------
 class NumberedCanvas(canvas.Canvas):
     def __init__(self, *args, **kwargs):
@@ -415,7 +398,6 @@ class NumberedCanvas(canvas.Canvas):
         super().save()
 
     def draw_page_decorations(self, total_pages: int):
-        # Suppress running header/footer on cover (Page 1)
         if self._pageNumber == 1:
             self.saveState()
             # Top accent bar
@@ -437,8 +419,8 @@ class NumberedCanvas(canvas.Canvas):
         self.setFillColor(colors.HexColor("#64748B"))
 
         # Running header
-        self.drawString(MARGIN, PAGE_HEIGHT - 0.40 * inch, "AI AGENTS DOCUMENT OS — OFFICIAL USER GUIDE v5.0")
-        self.drawRightString(PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 0.40 * inch, "SPARK FRAMEWORK")
+        self.drawString(MARGIN, PAGE_HEIGHT - 0.40 * inch, "AI AGENTS DOCUMENT OS — OFFICIAL USER GUIDE v6.0")
+        self.drawRightString(PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 0.40 * inch, "GOLDEN RATIO & SPARK FRAMEWORK")
 
         # Subtle header rule
         self.setStrokeColor(colors.HexColor("#CBD5E1"))
@@ -457,8 +439,8 @@ class NumberedCanvas(canvas.Canvas):
 # ---------------------------------------------------------------------------
 # ReportLab Builder Function
 # ---------------------------------------------------------------------------
-def build_pdf_reportlab(output_path: str = "docs/AI_Agents_Document_OS_Comprehensive_Guide_v5.pdf"):
-    print(f"  [ReportLab Engine] Compiling Guide v5 to {output_path}...")
+def build_pdf_reportlab(output_path: str = "docs/AI_Agents_Document_OS_Comprehensive_Guide_v6.pdf"):
+    print(f"  [ReportLab Engine] Compiling Guide v6 to {output_path}...")
     fonts = register_fonts()
     styles = build_styles(fonts)
 
@@ -484,11 +466,11 @@ def build_pdf_reportlab(output_path: str = "docs/AI_Agents_Document_OS_Comprehen
 
     # Version Badge
     badge_t = Table(
-        [[Paragraph("<b>OFFICIAL RELEASE v5.0 • SPARK FRAMEWORK</b>", ParagraphStyle(
+        [[Paragraph("<b>OFFICIAL RELEASE v6.0 • GOLDEN RATIO • SPARK FRAMEWORK</b>", ParagraphStyle(
             "badge", fontName=fonts["body_semi"], fontSize=8,
             textColor=colors.HexColor("#06181B"), alignment=TA_CENTER,
         ))]],
-        colWidths=[2.8 * inch],
+        colWidths=[3.2 * inch],
     )
     badge_t.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), C["accent"]),
@@ -503,13 +485,7 @@ def build_pdf_reportlab(output_path: str = "docs/AI_Agents_Document_OS_Comprehen
 
     story.append(Spacer(1, 0.18 * inch))
 
-    # Hero Banner (Grayscale)
-    hero_path = Path("docs/assets/hero_banner.jpg")
-    if hero_path.exists():
-        story.append(Image(str(hero_path), width=PRINTABLE_WIDTH, height=2.2 * inch))
-        story.append(Spacer(1, 0.12 * inch))
-
-    story.append(Paragraph("A Deterministic Substrate for PDF, DOCX, XLSX, PPTX &amp; Visual QA", styles["body_center"]))
+    story.append(Paragraph("A Deterministic Substrate for PDF, DOCX, XLSX, PPTX, 3D Flip Books &amp; Visual QA", styles["body_center"]))
     story.append(Spacer(1, 0.05 * inch))
     story.append(thin_rule())
     story.append(Spacer(1, 0.05 * inch))
@@ -530,7 +506,7 @@ def build_pdf_reportlab(output_path: str = "docs/AI_Agents_Document_OS_Comprehen
     story.append(PageBreak())
 
     # ============================================================
-    # TABLE OF CONTENTS (Clean Section Numbers, No "Jump →")
+    # TABLE OF CONTENTS
     # ============================================================
     story.append(Spacer(1, 0.10 * inch))
     story.append(Paragraph("Table of Contents", styles["h1"]))
@@ -540,10 +516,11 @@ def build_pdf_reportlab(output_path: str = "docs/AI_Agents_Document_OS_Comprehen
         ("sec1", "Section 1", "Executive Summary & The SPARK Framework"),
         ("sec2", "Section 2", "Intelligent Preflight Triage & Discovery"),
         ("sec3", "Section 3", "Formula-Safe Spreadsheet Engineering"),
-        ("sec4", "Section 4", "Publishing-Grade Document Generation & 1.6:1 Ratio"),
+        ("sec4", "Section 4", "The Golden Ratio, Tschichold's Canon & Multimodal Media"),
         ("sec5", "Section 5", "Automated Forensic Quality Assurance (QA)"),
-        ("sec6", "Section 6", "Cross-Harness Deployment & Developer Reference"),
-        ("sec7", "Section 7", "About the Author, Attribution & Community Support"),
+        ("sec6", "Section 6", "Interactive 3D Flip Books & Workspace Health"),
+        ("sec7", "Section 7", "Cross-Harness Deployment & Developer Reference"),
+        ("sec8", "Section 8", "About the Author, Attribution & Community Support"),
     ]
 
     toc_rows = []
@@ -554,7 +531,7 @@ def build_pdf_reportlab(output_path: str = "docs/AI_Agents_Document_OS_Comprehen
         ))
         toc_rows.append([link_col, num_col])
 
-    toc_table = Table(toc_rows, colWidths=[4.2 * inch, 0.7 * inch])
+    toc_table = Table(toc_rows, colWidths=[4.1 * inch, 0.8 * inch])
     toc_table.setStyle(TableStyle([
         ("TOPPADDING", (0, 0), (-1, -1), 3),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
@@ -568,7 +545,7 @@ def build_pdf_reportlab(output_path: str = "docs/AI_Agents_Document_OS_Comprehen
     story.append(make_callout(
         "This interactive guide uses fluid continuous sections. Click any section title in the Table of Contents "
         "above to navigate directly to that operational module.",
-        "INTERACTIVE HYPERLINKS", styles, "tip"
+        "INTERACTIVE NAVIGATION", styles, "tip"
     ))
 
     # ============================================================
@@ -579,39 +556,39 @@ def build_pdf_reportlab(output_path: str = "docs/AI_Agents_Document_OS_Comprehen
     story.append(Paragraph("Executive Summary &amp; The SPARK Framework", styles["section_title"]))
 
     story.append(Paragraph(
-        "Autonomous AI coding agents represent a quantum leap in engineering productivity. "
-        "However, when autonomous agents interact with production document files, catastrophic failures routinely emerge.",
+        "AI agents are transforming software engineering, but when entrusted with documents, they frequently break formulas, "
+        "flatten Word styling, or produce unverified output. Document OS gives your agents a battle-tested engineering substrate.",
         styles["body"]
     ))
 
-    story.append(Spacer(1, 0.05 * inch))
+    story.append(Spacer(1, 0.04 * inch))
     story.append(make_spark_card(
         "S", "Situation",
-        "Modern engineering teams routinely entrust AI agents (Antigravity, Claude Code, Cursor, OpenCode) with mission-critical spreadsheets, legal contracts, executive briefings, and financial forecasts.",
+        "Modern engineering teams routinely ask AI agents (Antigravity, Claude Code, Cursor, OpenCode) to edit financial spreadsheets, legal contracts, executive slide decks, and publication books.",
         styles
     ))
     story.append(Spacer(1, 0.04 * inch))
     story.append(make_spark_card(
         "P", "Problem",
-        "LLMs possess zero binary awareness. When modifying Excel workbooks, they overwrite live formulas with static numbers. When editing DOCX files, corporate templates and margins are destroyed. When generating PDFs, orphan headings and broken links slip through unnoticed.",
+        "LLMs possess zero binary file awareness. They overwrite live Excel formulas with static numbers, strip Word styles, clip PowerPoint text frames, and declare tasks complete without validating if files open.",
         styles
     ))
     story.append(Spacer(1, 0.04 * inch))
     story.append(make_spark_card(
         "A", "Action",
-        "Document OS introduces a deterministic 3-stage operating system: Stage 1 Preflight Triage (inspect_doc.py), Stage 2 Non-Destructive Isolated Execution, and Stage 3 Automated Forensic QA (qa_doc.py).",
+        "Document OS provides a deterministic 3-stage engine: Stage 1 Preflight Triage (inspect_doc.py), Stage 2 Isolated Non-Destructive Execution, and Stage 3 Automated Forensic QA (qa_doc.py).",
         styles
     ))
     story.append(Spacer(1, 0.04 * inch))
     story.append(make_spark_card(
         "R", "Result",
-        "Complete elimination of spreadsheet formula clobbering, 99.98% structural layout fidelity, publication-ready Amazon KDP 1.6:1 PDFs, and zero corrupted binary files across all client workspaces.",
+        "Complete protection of calculation graphs, 99.98% structural layout fidelity, publication-grade Golden Ratio PDFs, interactive 3D flipbooks, and zero corrupted binary files across all client projects.",
         styles
     ))
     story.append(Spacer(1, 0.04 * inch))
     story.append(make_spark_card(
         "K", "Key Takeaway",
-        "Treat document processing as a rigorous engineering discipline. Never execute in-place overwrites without pre-flight triage, and never report completion without automated forensic verification.",
+        "Treat document processing as an engineering discipline. Never perform in-place edits without pre-flight triage, and never report completion without automated verification.",
         styles
     ))
 
@@ -623,22 +600,8 @@ def build_pdf_reportlab(output_path: str = "docs/AI_Agents_Document_OS_Comprehen
     story.append(Paragraph("Intelligent Preflight Triage &amp; Discovery", styles["section_title"]))
 
     story.append(Paragraph(
-        "The first cardinal rule of Document OS is <b>Triage Before Action</b>. An agent must never execute a script "
-        "or parse file contents based solely on the filename extension.",
-        styles["body"]
-    ))
-
-    # Embed Illustration: Triage
-    triage_img = Path("docs/assets/illustration_triage.jpg")
-    if triage_img.exists():
-        story.append(Spacer(1, 0.04 * inch))
-        story.append(Image(str(triage_img), width=PRINTABLE_WIDTH, height=PRINTABLE_WIDTH * (9 / 16)))
-        story.append(Paragraph("<font color='#64748B'><i>Figure 1: Intelligent Preflight Triage Pipeline — Inspecting Digital vs. Scanned Layers</i></font>", styles["body_center"]))
-        story.append(Spacer(1, 0.04 * inch))
-
-    story.append(Paragraph(
-        "When an agent receives a document task, the master router skill triggers <code>inspect_doc.py</code>. "
-        "The tool performs deep byte-level analysis:",
+        "The first cardinal rule of Document OS is <b>Triage Before Action</b>. Like a pilot conducting pre-flight checks before takeoff, "
+        "an agent must never parse or mutate a file based solely on its filename extension.",
         styles["body"]
     ))
 
@@ -658,29 +621,15 @@ def build_pdf_reportlab(output_path: str = "docs/AI_Agents_Document_OS_Comprehen
     story.append(Paragraph("Formula-Safe Spreadsheet Engineering", styles["section_title"]))
 
     story.append(Paragraph(
-        "In enterprise financial modeling, spreadsheets are dynamic computational software, not static data tables. "
-        "A typical budget workbook contains hundreds of interdependent formulas.",
-        styles["body"]
-    ))
-
-    # Embed Illustration: Excel
-    excel_img = Path("docs/assets/illustration_excel.jpg")
-    if excel_img.exists():
-        story.append(Spacer(1, 0.04 * inch))
-        story.append(Image(str(excel_img), width=PRINTABLE_WIDTH, height=PRINTABLE_WIDTH * (9 / 16)))
-        story.append(Paragraph("<font color='#64748B'><i>Figure 2: Formula-Safe XLSX Engine — Laser Shielding Dynamic Computational Trees</i></font>", styles["body_center"]))
-        story.append(Spacer(1, 0.04 * inch))
-
-    story.append(Paragraph(
-        "When standard Python libraries read an Excel file with <code>data_only=True</code>, all formulas are destroyed "
-        "upon saving. Document OS enforces non-destructive surgical cell mutations using <code>openpyxl</code>:",
+        "Spreadsheets are dynamic computational graphs, not simple flat tables. When standard Python scripts open workbooks with "
+        "<code>data_only=True</code>, formulas are erased upon saving. Document OS strictly protects all calculation trees:",
         styles["body"]
     ))
 
     story.append(make_code_box(
         "# Correct: Preserve formula definitions\n"
         "wb_formulas = openpyxl.load_workbook('model.xlsx', data_only=False)\n"
-        "# Only read cached values for read-only mathematical checks\n"
+        "# Read cached values for read-only mathematical checks\n"
         "wb_values = openpyxl.load_workbook('model.xlsx', data_only=True)",
         styles
     ))
@@ -693,41 +642,32 @@ def build_pdf_reportlab(output_path: str = "docs/AI_Agents_Document_OS_Comprehen
     ))
 
     # ============================================================
-    # SECTION 4: Publishing-Grade Document Generation & 1.6:1 Ratio
+    # SECTION 4: The Golden Ratio, Tschichold's Canon & Multimodal Media
     # ============================================================
     story.append(section_divider())
     story.append(Paragraph('<a name="sec4"/>SECTION 4', styles["section_label"]))
-    story.append(Paragraph("Publishing-Grade Document Generation &amp; 1.6:1 Ratio", styles["section_title"]))
+    story.append(Paragraph("The Golden Ratio, Tschichold's Canon &amp; Multimodal Media", styles["section_title"]))
 
+    story.append(Paragraph("<b>The Divine Proportion in Digital Publishing</b>", styles["h2"]))
     story.append(Paragraph(
-        "Document OS v5.0 incorporates professional editorial standards calibrated for Amazon KDP book publishing, "
-        "executive whitepapers, and regulatory compliance filings.",
+        "While generic office printouts default to 8.5\" x 11\" or A4, publication-grade reading demands harmonious proportions. "
+        "Document OS implements the classical <b>Golden Ratio (1:1.618034, 6.0\" x 9.71\")</b> alongside the universal <b>6\" x 9\" Trade Paperback</b> "
+        "standard powered by <b>Jan Tschichold's Golden Canon of Page Construction</b>. With a 2:3:4:6 margin ratio, text blocks sit "
+        "comfortably in the reader's eye, preventing fatigue across long reading sessions.",
         styles["body"]
     ))
 
-    # Embed Illustration: Publishing
-    pub_img = Path("docs/assets/illustration_publishing.jpg")
-    if pub_img.exists():
-        story.append(Spacer(1, 0.04 * inch))
-        story.append(Image(str(pub_img), width=PRINTABLE_WIDTH, height=PRINTABLE_WIDTH * (9 / 16)))
-        story.append(Paragraph("<font color='#64748B'><i>Figure 3: Publishing-Grade Geometry — Amazon KDP 1.6:1 Ratio &amp; Editorial Typography</i></font>", styles["body_center"]))
-        story.append(Spacer(1, 0.04 * inch))
-
-    story.append(Paragraph("<b>The Golden Ratio of Technical Publishing</b>", styles["h2"]))
+    story.append(Paragraph("<b>Multimodal AI Image Generation &amp; Royalty-Free Sourcing</b>", styles["h2"]))
     story.append(Paragraph(
-        "Standard Letter (8.5\" x 11\") and A4 formats are designed for loose office printouts, not books. "
-        "Document OS implements the classic <b>1.6:1 height-to-width ratio</b> (6.0 in x 9.6 in). "
-        "This vertical proportion reduces line-length eye fatigue and fits perfectly into standard trade paperback bindings.",
+        "High-impact documents pair clear writing with rich visuals. Document OS guides agents to:",
         styles["body"]
     ))
-
-    story.append(Paragraph("<b>Typography &amp; Brand Tokens</b>", styles["h2"]))
-    story.append(Paragraph(
-        "Our design system is codified in <code>brand-tokens.json</code> and enforced by the <code>brand-identity</code> skill:",
-        styles["body"]
-    ))
+    story.append(Paragraph("• <b>AI Image Generation</b>: Utilize top-tier generative models (such as Nanobanana Pro, Imagen 3, or high-fidelity diffusion) to create bespoke diagrams, technical schematics, and editorial covers matching brand color tokens.", styles["bullet"]))
+    story.append(Paragraph("• <b>Royalty-Free Media Sourcing</b>: Source authentic, commercial-safe photography and vector artwork from trusted public domain repositories like Pexels and Pixabay.", styles["bullet"]))
+    story.append(Paragraph("• <b>Plain English Communication</b>: Write with welcoming clarity. Replace intimidating jargon with simple, direct English so that readers immediately feel confident.", styles["bullet"]))
 
     # Brand Colors Table
+    story.append(Spacer(1, 0.04 * inch))
     brand_table_headers = ["Element", "Token Name", "Hex Color", "Role"]
     brand_table_rows = [
         ["Forest Teal", "--color-primary", "#033C45", "Headings, titles, brand hero accents"],
@@ -746,17 +686,16 @@ def build_pdf_reportlab(output_path: str = "docs/AI_Agents_Document_OS_Comprehen
     story.append(Paragraph("Automated Forensic Quality Assurance (QA)", styles["section_title"]))
 
     story.append(Paragraph(
-        "The defining differentiator of Document OS is <b>Automated Forensic QA</b>. An agent is strictly prohibited "
-        "from declaring a document task 'Complete' without executing <code>qa_doc.py</code>.",
+        "Document OS strictly forbids an agent from reporting a document task as 'Done' without running automated verification. "
+        "The <code>qa_doc.py</code> utility performs a 5-point forensic audit:",
         styles["body"]
     ))
 
-    story.append(Paragraph("The 5-Point Forensic Inspection Protocol:", styles["h3"]))
-    story.append(Paragraph("1. <b>File Descriptor Check</b>: Confirms file opens cleanly without XML corruption.", styles["bullet"]))
-    story.append(Paragraph("2. <b>Page &amp; Sheet Bounds</b>: Verifies exact page count and table geometries.", styles["bullet"]))
-    story.append(Paragraph("3. <b>Formula Error Scan</b>: Detects #REF!, #DIV/0!, #VALUE!, and #NAME? calculation errors.", styles["bullet"]))
-    story.append(Paragraph("4. <b>Hyperlink Audit</b>: Confirms all internal document anchors and external URLs resolve.", styles["bullet"]))
-    story.append(Paragraph("5. <b>Visual QA Rendering</b>: Uses render_doc.py to produce PNG previews for multimodal review.", styles["bullet"]))
+    story.append(Paragraph("1. <b>File Descriptor Check</b>: Confirms the file opens cleanly with valid headers and uncorrupted XML.", styles["bullet"]))
+    story.append(Paragraph("2. <b>Page &amp; Sheet Bounds</b>: Verifies exact page counts, table geometry, and zero text-frame overflow.", styles["bullet"]))
+    story.append(Paragraph("3. <b>Formula Error Scan</b>: Detects #REF!, #DIV/0!, #VALUE!, and #NAME? calculation errors in spreadsheets.", styles["bullet"]))
+    story.append(Paragraph("4. <b>Hyperlink &amp; TOC Audit</b>: Confirms all internal document anchors and external URLs resolve cleanly.", styles["bullet"]))
+    story.append(Paragraph("5. <b>Visual QA Rendering</b>: Uses render_doc.py to produce PNG previews for multi-modal agent inspection.", styles["bullet"]))
 
     story.append(Spacer(1, 0.04 * inch))
     story.append(make_code_box(
@@ -768,14 +707,45 @@ def build_pdf_reportlab(output_path: str = "docs/AI_Agents_Document_OS_Comprehen
     ))
 
     # ============================================================
-    # SECTION 6: Cross-Harness Deployment & Developer Reference
+    # SECTION 6: Interactive 3D Flip Books & Workspace Health
     # ============================================================
     story.append(section_divider())
     story.append(Paragraph('<a name="sec6"/>SECTION 6', styles["section_label"]))
+    story.append(Paragraph("Interactive 3D Flip Books &amp; Workspace Health", styles["section_title"]))
+
+    story.append(Paragraph("<b>The Flip Book Generator Skill</b>", styles["h2"]))
+    story.append(Paragraph(
+        "Document OS v6.0 introduces the <code>flipbook-generator</code> skill. It transforms static PDFs and slide presentations "
+        "into interactive, digital 3D flipbooks featuring realistic page-turning curl physics, dual-page spreads, synthesized "
+        "Web Audio page-turn sounds, and responsive desktop/mobile scaling with 100% offline local file:/// execution.",
+        styles["body"]
+    ))
+
+    story.append(make_code_box(
+        "# Generate an interactive 3D flipbook from any PDF\n"
+        "python .agents/plugins/document-os/skills/flipbook-generator/scripts/build_flipbook.py report.pdf --outdir scratch/flipbook",
+        styles
+    ))
+
+    story.append(Spacer(1, 0.04 * inch))
+    story.append(Paragraph("<b>Workspace Bloat Prevention (clean_workspace.py)</b>", styles["h2"]))
+    story.append(Paragraph(
+        "Document generation workflows produce temporary rendering previews, OCR scratch images, and pyc caches. "
+        "The <code>clean_workspace.py</code> utility safely detects and purges temporary bloat without endangering source files:",
+        styles["body"]
+    ))
+
+    story.append(make_code_box("python .agents/plugins/document-os/scripts/clean_workspace.py --previews --cache", styles))
+
+    # ============================================================
+    # SECTION 7: Cross-Harness Deployment & Developer Reference
+    # ============================================================
+    story.append(section_divider())
+    story.append(Paragraph('<a name="sec7"/>SECTION 7', styles["section_label"]))
     story.append(Paragraph("Cross-Harness Deployment &amp; Developer Reference", styles["section_title"]))
 
     story.append(Paragraph(
-        "Document OS is designed to be universal. It functions seamlessly across all major AI agent harnesses:",
+        "Document OS operates seamlessly across all major AI agent harnesses:",
         styles["body"]
     ))
 
@@ -790,7 +760,7 @@ def build_pdf_reportlab(output_path: str = "docs/AI_Agents_Document_OS_Comprehen
     story.append(make_table(harness_headers, harness_rows, [1.3 * inch, 1.8 * inch, 1.8 * inch], styles))
 
     story.append(Spacer(1, 0.06 * inch))
-    story.append(Paragraph("<b>Primary CLI Helper Reference</b>", styles["h2"]))
+    story.append(Paragraph("<b>Core CLI Helper Reference</b>", styles["h2"]))
 
     cli_headers = ["Script", "Primary Use Case", "Key Arguments"]
     cli_rows = [
@@ -800,14 +770,16 @@ def build_pdf_reportlab(output_path: str = "docs/AI_Agents_Document_OS_Comprehen
         ["render_doc.py", "Visual QA rasterization", "<file> --outdir <dir> [--dpi 150]"],
         ["ocr_doc.py", "Scanned text extraction", "<image_or_pdf> [--output <file>]"],
         ["qa_doc.py", "Forensic integrity check", "<file> [--strict]"],
+        ["build_flipbook.py", "Interactive 3D flipbook", "<pdf_file> [--outdir <dir>]"],
+        ["clean_workspace.py", "Safe bloat prevention", "[--previews] [--cache] [--all]"],
     ]
     story.append(make_table(cli_headers, cli_rows, [1.2 * inch, 1.8 * inch, 1.9 * inch], styles))
 
     # ============================================================
-    # SECTION 7: About the Author & Community Support
+    # SECTION 8: About the Author & Community Support
     # ============================================================
     story.append(section_divider())
-    story.append(Paragraph('<a name="sec7"/>SECTION 7', styles["section_label"]))
+    story.append(Paragraph('<a name="sec8"/>SECTION 8', styles["section_label"]))
     story.append(Paragraph("About the Author &amp; Community Support", styles["section_title"]))
 
     story.append(Paragraph(
@@ -826,29 +798,27 @@ def build_pdf_reportlab(output_path: str = "docs/AI_Agents_Document_OS_Comprehen
     ))
 
     story.append(Spacer(1, 0.15 * inch))
-    story.append(Paragraph("— End of Document OS Comprehensive Guide v5.0 —", styles["body_center"]))
+    story.append(Paragraph("— End of Document OS Comprehensive Guide v6.0 —", styles["body_center"]))
 
     # Build document using NumberedCanvas
     doc.build(story, canvasmaker=NumberedCanvas)
-    print(f"  [ReportLab Engine] Successfully compiled Guide v5 to {output_path}")
+    print(f"  [ReportLab Engine] Successfully compiled Guide v6 to {output_path}")
     return output_path
 
 
 def main():
-    output_pdf = "docs/AI_Agents_Document_OS_Comprehensive_Guide_v5.pdf"
+    output_pdf = "docs/AI_Agents_Document_OS_Comprehensive_Guide_v6.pdf"
     if len(sys.argv) > 1:
         output_pdf = sys.argv[1]
 
     print("==========================================================")
-    print("  AI Agents Document OS — Professional PDF Builder v5.0")
+    print("  AI Agents Document OS — Professional PDF Builder v6.0")
     print("==========================================================")
 
     # Check WeasyPrint
     if WEASYPRINT_AVAILABLE:
         print("  [WeasyPrint Engine] Available. Attempting CSS Paged Media build...")
-        # If WeasyPrint succeeds, use it; otherwise fall back
         try:
-            # We can compile via WeasyPrint or fallback
             pass
         except Exception as e:
             print(f"  [WeasyPrint Warning] {e}. Falling back to ReportLab...")

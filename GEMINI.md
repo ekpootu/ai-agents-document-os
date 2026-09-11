@@ -38,6 +38,15 @@ When operating in this workspace, treat document processing as an engineering di
    - Use the font pairings: Playfair Display (display), Source Sans 3 (body), JetBrains Mono (code).
    - Load design tokens from `.agents/skills/brand-identity/resources/brand-tokens.json` for script-driven generation.
 
+7. **Multimodal Media & AI Image Generation**
+   - When creating or illustrating documents, generate high-resolution visual assets with cutting-edge AI image generation models (such as Nanobanana Pro or Imagen 3) or source authentic, royalty-free assets from services like Pexels and Pixabay.
+
+8. **Plain Language & Friendly Tone**
+   - Write all guides, summaries, and agent communications in clear, friendly, and accessible English. Replace confusing technical jargon with straightforward explanations and clear examples so that every user feels supported.
+
+9. **The Golden Ratio & Harmonious Page Layouts**
+   - Format book-length and whitepaper publications using the Golden Ratio ($\phi \approx 1.618:1$, $6.0" \times 9.71"$) or the standard 6" x 9" Trade Trim with Tschichold's Golden Canon of Page Construction, creating spacious, readable, and elegant layouts.
+
 ## Author & Attribution
 
 - **Author**: [Ekpo Otu, Ph.D.](https://linktr.ee/ekpootu)

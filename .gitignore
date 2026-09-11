@@ -71,12 +71,13 @@ github_setup.md
 # Private Web Application & Admin CMS Suite
 web/
 
-# Private Design & Extracted Image Assets
-extra/extracted_assets/
+# Extracted Image Assets & Local Renders (preserve folder structure via .gitkeep)
+extra/extracted_assets/*
+!extra/extracted_assets/.gitkeep
 
 # Documentation & Assets
 docs/*
-!docs/AI_Agents_Document_OS_Comprehensive_Guide_v5.pdf
+!docs/AI_Agents_Document_OS_Comprehensive_Guide_v6.pdf
 
 # Brand reference images (personal design source files)
 brand-color*.png

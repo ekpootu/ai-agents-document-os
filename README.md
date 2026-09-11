@@ -69,8 +69,9 @@ graph TD
     subgraph "Layer 2: Specialized Agent Skills (Cognition)"
         Router[document-router Skill: Triage & Routing]
         QA[document-qa Skill: Forensic Verification]
-        Brand[brand-identity Skill: Colors & 1.6:1 Layout]
-        Dash[dashboard-design Skill: Decoupled CMS UI]
+        Brand[brand-identity Skill: Colors & Golden Ratio]
+        Copy[copywriting Skill: SPARK Conversion Framework]
+        Flip[flipbook-generator Skill: 3D Digital Flip Book]
     end
 
     subgraph "Layer 3: MCP & Tooling Harness (Deterministic Execution)"
@@ -80,11 +81,13 @@ graph TD
         Render[render_doc.py: Multi-Modal Visual QA]
         QAScript[qa_doc.py: Formula & Tag Auditor]
         PDFEng[build_professional_pdf.py: WeasyPrint/ReportLab]
+        FlipEng[build_flipbook.py: Interactive 3D Flip Book]
+        Clean[clean_workspace.py: Safe Bloat Prevention]
     end
 
     Plugin --> Manifest
-    Manifest --> Router & QA & Brand & Dash
-    Router & QA & Brand --> Inspect & Extract & Convert & Render & QAScript & PDFEng
+    Manifest --> Router & QA & Brand & Copy & Flip
+    Router & QA & Brand & Copy & Flip --> Inspect & Extract & Convert & Render & QAScript & PDFEng & FlipEng & Clean
 ```
 
 1. **📦 It is a Modular Plugin (`document-os`)**:
@@ -93,8 +96,9 @@ graph TD
    - Modular cognitive instruction sets that teach the LLM how to reason about documents before touching files:
      - **`document-router`**: Triages files to detect digital text vs scanned layers, dynamic spreadsheet formulas, Word XML hierarchies, and slide templates.
      - **`document-qa`**: Enforces strict post-generation quality assurance, auditing files for broken formulas (`#REF!`), truncated text boxes, and corrupt markup.
-     - **`brand-identity`**: Automatically injects corporate color palettes (Forest Teal & Artisan Gold), Google Fonts pairings, and Amazon KDP 1.6:1 publication standards.
-     - **`dashboard-design`**: Governs decoupled CMS architectures and enterprise admin dashboards.
+     - **`brand-identity`**: Automatically injects corporate color palettes (Forest Teal & Artisan Gold), Google Fonts pairings, and Golden Ratio / Amazon KDP publication standards.
+     - **`copywriting`**: Enforces the high-conversion SPARK framework (Situation, Problem, Action, Result, Key Takeaway) for publishing-grade executive summaries and technical briefs.
+     - **`flipbook-generator`**: Transforms static documents into interactive, digital 3D flipbooks with authentic page curl physics, dual-page spreads, and zero-dependency offline local execution.
 3. **⚙️ It is an MCP & Deterministic Tooling Harness**:
    - Provides local, zero-cloud Python CLI engines that serve as the agent's deterministic hands. Instead of asking an LLM to hallucinate spreadsheet math or generate raw PDFs in context, the agent invokes tested local tools to perform byte-accurate file operations.
 
@@ -433,14 +437,15 @@ Here is how Document OS seamlessly integrates into your everyday pair-programmin
 
 ## 📖 Dogfooded Official Guide
 
-We don't just talk about document fidelity; we prove it. The complete **AI Agents Document OS Comprehensive User Guide v5.0** was generated using our professional PDF engine with embedded Google Fonts (Playfair Display + Source Sans 3), brand-consistent styling, clickable Table of Contents, exact 1.6:1 height-to-width ratio, and Amazon KDP publishing-grade formatting.
+We don't just talk about document fidelity; we prove it. The complete **AI Agents Document OS Comprehensive User Guide v6.0** was generated using our professional PDF engine with embedded Google Fonts (Playfair Display + Source Sans 3), brand-consistent styling, clickable Table of Contents, the classical **Golden Ratio (1:1.618)** proportion, and Amazon KDP publishing-grade formatting.
 
-👉 **[Download the Official PDF User Guide v5.0](docs/AI_Agents_Document_OS_Comprehensive_Guide_v5.pdf)**
+👉 **[Download the Official PDF User Guide v6.0](docs/AI_Agents_Document_OS_Comprehensive_Guide_v6.pdf)**
 
-### Document Generation Engines
+### Document Generation & Flip Book Engines
 
-- **WeasyPrint** (Primary Engine): CSS Paged Media engine for semantic HTML+CSS to PDF compilation. Generates fluid, multi-section page flows without artificial page-break voids, complete with running headers, footers, and Amazon KDP 1.6:1 aspect ratio.
+- **WeasyPrint** (Primary Engine): CSS Paged Media engine for semantic HTML+CSS to PDF compilation. Generates fluid, multi-section page flows without artificial page-break voids, complete with running headers, footers, and Amazon KDP Golden Ratio (1:1.618) proportions.
 - **ReportLab** (Secondary Engine): Precision programmatic PDF builder with embedded Google Fonts, custom vector canvases, and automated table formatting. Serves as our zero-dependency, ultra-reliable fallback engine whenever native GTK3 runtimes are absent.
+- **Flip Book Engine** (`flipbook-generator` skill): Transforms any generated PDF or presentation into an interactive, zero-dependency digital 3D flipbook featuring realistic page curl physics, dual-page spreads, and synthesized Web Audio page-turn sounds.
 
 ---
 

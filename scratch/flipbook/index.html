@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Agents Document OS Comprehensive Guide v6.0 — Interactive 3D Flip Book</title>
+  <style>
+    :root {
+      --primary: #033C45;
+      --primary-dark: #06181B;
+      --accent: #C6A965;
+      --accent-light: #F5EEDB;
+      --bg: #0F172A;
+      --surface: #1E293B;
+      --text: #F8FAFC;
+      --text-muted: #94A3B8;
+      --border: rgba(198, 169, 101, 0.25);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(circle at center, #1E293B 0%, #090D16 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Top Bar */
+    header {
+      height: 56px;
+      background: rgba(6, 24, 27, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 100;
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-title span {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--text-muted);
+      border-left: 1px solid rgba(255, 255, 255, 0.2);
+      padding-left: 10px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: rgba(198, 169, 101, 0.2);
+      border-color: var(--accent);
+      color: #FFFFFF;
+    }
+
+    .btn.active {
+      background: var(--accent);
+      color: var(--primary-dark);
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Main Stage */
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      perspective: 2500px;
+      position: relative;
+    }
+
+    /* Book Container */
+    .book-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
+      border-radius: 8px;
+      transition: transform 0.3s ease;
+    }
+
+    .book-viewport {
+      display: flex;
+      background: #FFFFFF;
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(198, 169, 101, 0.3);
+      position: relative;
+    }
+
+    /* Spine effect */
+    .book-viewport::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 30px;
+      transform: translateX(-50%);
+      background: linear-gradient(90deg, 
+        rgba(0,0,0,0.15) 0%, 
+        rgba(0,0,0,0.02) 20%, 
+        rgba(255,255,255,0.2) 50%, 
+        rgba(0,0,0,0.02) 80%, 
+        rgba(0,0,0,0.15) 100%);
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    .page-slot {
+      width: 420px;
+      height: 672px; /* 1:1.6 Golden standard proportion */
+      background: #FFFFFF;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .page-slot img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      background: #FFFFFF;
+    }
+
+    .page-slot.empty {
+      background: #F8F9FA;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #94A3B8;
+      font-size: 14px;
+      font-style: italic;
+    }
+
+    /* Page Turn Shadows */
+    .page-slot.left {
+      box-shadow: inset -15px 0 20px -10px rgba(0,0,0,0.15);
+    }
+
+    .page-slot.right {
+      box-shadow: inset 15px 0 20px -10px rgba(0,0,0,0.15);
+    }
+
+    /* Side Click Navigators */
+    .nav-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(6, 24, 27, 0.7);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 22px;
+      transition: all 0.2s ease;
+      z-index: 50;
+      backdrop-filter: blur(6px);
+    }
+
+    .nav-arrow:hover {
+      background: var(--accent);
+      color: var(--primary-dark);
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    .nav-arrow.prev { left: -70px; }
+    .nav-arrow.next { right: -70px; }
+
+    .nav-arrow.disabled {
+      opacity: 0.2;
+      pointer-events: none;
+    }
+
+    /* Bottom Toolbar */
+    footer {
+      height: 64px;
+      background: rgba(6, 24, 27, 0.9);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 100;
+    }
+
+    .page-counter {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .page-counter b {
+      color: var(--accent);
+    }
+
+    .scrubber-container {
+      flex: 1;
+      max-width: 500px;
+      margin: 0 30px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .scrubber-slider {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.15);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .scrubber-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(198, 169, 101, 0.5);
+    }
+
+    /* Mobile Adaptability */
+    @media (max-width: 950px) {
+      .page-slot.left { display: none; }
+      .book-viewport::after { display: none; }
+      .page-slot { width: 90vw; height: auto; aspect-ratio: 1 / 1.6; }
+      .nav-arrow.prev { left: 10px; }
+      .nav-arrow.next { right: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand-title">
+      📄 AI Agents Document OS Comprehensive Guide v6.0
+      <span>Ekpo Otu, Ph.D.</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn" id="btnSound" onclick="toggleSound()">🔊 Audio: On</button>
+      <button class="btn" id="btnFullscreen" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="book-container" id="bookContainer">
+      <button class="nav-arrow prev" id="arrowPrev" onclick="prevPage()">&#10094;</button>
+      
+      <div class="book-viewport" id="bookViewport">
+        <div class="page-slot left" id="leftPage"></div>
+        <div class="page-slot right" id="rightPage"></div>
+      </div>
+
+      <button class="nav-arrow next" id="arrowNext" onclick="nextPage()">&#10095;</button>
+    </div>
+  </main>
+
+  <footer>
+    <div class="page-counter" id="pageCounter">
+      Pages <b>1-2</b> of 6
+    </div>
+
+    <div class="scrubber-container">
+      <input type="range" class="scrubber-slider" id="pageSlider" min="0" max="6" step="2" value="0" oninput="jumpToSpread(parseInt(this.value))">
+    </div>
+
+    <div class="header-actions">
+      <button class="btn" onclick="jumpToSpread(0)">⇤ Cover</button>
+      <button class="btn" onclick="jumpToSpread(6)">Last Page ⇥</button>
+    </div>
+  </footer>
+
+  <script>
+    const pages = ['pages/page_001.png', 'pages/page_002.png', 'pages/page_003.png', 'pages/page_004.png', 'pages/page_005.png', 'pages/page_006.png'];
+    const totalPages = pages.length;
+    let currentSpread = 0; // 0 = Cover (solo on right), 2 = pages 2 & 3, etc.
+    let soundEnabled = true;
+
+    // Web Audio Synthesizer for Zero-Asset Page Turn SFX
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playTurnSound() {
+      if (!soundEnabled) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'pink' || 'sine';
+        osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.12);
+      } catch (e) {}
+    }
+
+    function renderSpread() {
+      const leftEl = document.getElementById('leftPage');
+      const rightEl = document.getElementById('rightPage');
+      const counterEl = document.getElementById('pageCounter');
+      const sliderEl = document.getElementById('pageSlider');
+
+      if (currentSpread === 0) {
+        // Cover Spread: Left is blank/closed, Right is page 1 (Cover)
+        leftEl.innerHTML = '';
+        leftEl.className = 'page-slot left empty';
+        leftEl.textContent = 'Document OS Book Cover';
+        rightEl.innerHTML = `<img src="${pages[0]}" alt="Page 1 (Cover)">`;
+        rightEl.className = 'page-slot right';
+        counterEl.innerHTML = `Cover (Page <b>1</b> of ${totalPages})`;
+        sliderEl.value = 0;
+      } else {
+        const leftIdx = currentSpread - 1;
+        const rightIdx = currentSpread;
+
+        // Left Page
+        if (leftIdx < totalPages) {
+          leftEl.innerHTML = `<img src="${pages[leftIdx]}" alt="Page ${leftIdx + 1}">`;
+          leftEl.className = 'page-slot left';
+        } else {
+          leftEl.innerHTML = '';
+          leftEl.className = 'page-slot left empty';
+        }
+
+        // Right Page
+        if (rightIdx < totalPages) {
+          rightEl.innerHTML = `<img src="${pages[rightIdx]}" alt="Page ${rightIdx + 1}">`;
+          rightEl.className = 'page-slot right';
+        } else {
+          rightEl.innerHTML = '';
+          rightEl.className = 'page-slot right empty';
+          rightEl.textContent = 'End of Publication';
+        }
+
+        const displayLeft = leftIdx + 1;
+        const displayRight = rightIdx < totalPages ? rightIdx + 1 : '—';
+        counterEl.innerHTML = `Pages <b>${displayLeft} - ${displayRight}</b> of ${totalPages}`;
+        sliderEl.value = currentSpread;
+      }
+
+      // Update Nav Buttons State
+      document.getElementById('arrowPrev').classList.toggle('disabled', currentSpread <= 0);
+      document.getElementById('arrowNext').classList.toggle('disabled', currentSpread >= totalPages);
+    }
+
+    function prevPage() {
+      if (currentSpread <= 0) return;
+      currentSpread = Math.max(0, currentSpread - 2);
+      playTurnSound();
+      renderSpread();
+    }
+
+    function nextPage() {
+      if (currentSpread >= totalPages) return;
+      if (currentSpread === 0) {
+        currentSpread = 2;
+      } else {
+        currentSpread = Math.min(totalPages, currentSpread + 2);
+      }
+      playTurnSound();
+      renderSpread();
+    }
+
+    function jumpToSpread(val) {
+      if (val === 0) {
+        currentSpread = 0;
+      } else {
+        currentSpread = (val % 2 === 1) ? val + 1 : val;
+      }
+      currentSpread = Math.min(totalPages, Math.max(0, currentSpread));
+      playTurnSound();
+      renderSpread();
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('btnSound').textContent = soundEnabled ? '🔊 Audio: On' : '🔇 Audio: Off';
+      document.getElementById('btnSound').classList.toggle('active', soundEnabled);
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    // Keyboard Navigation
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        nextPage();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        prevPage();
+      } else if (e.key === 'Home') {
+        jumpToSpread(0);
+      } else if (e.key === 'End') {
+        jumpToSpread(totalPages);
+      }
+    });
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      renderSpread();
+    });
+  </script>
+</body>
+</html>

@@ -26,4 +26,13 @@ When the user asks you to read, analyze, summarize, convert, generate, or valida
    - For professional PDF generation, use the builder script:
      `python .agents/plugins/document-os/scripts/build_professional_pdf.py [output_path]`
    - Design tokens are available at `.agents/skills/brand-identity/resources/brand-tokens.json`.
+5. **Interactive 3D Flip Book Generation**:
+   - To transform any PDF or presentation into an interactive, digital 3D flipbook with realistic page curl physics, activate the `flipbook-generator` skill at `.agents/plugins/document-os/skills/flipbook-generator/SKILL.md`.
+   - Execute: `python .agents/plugins/document-os/scripts/build_flipbook.py <pdf_file> [--outdir <dir>]`
+6. **Multimodal Media Sourcing & AI Image Generation**:
+   - Enhance documents with visual assets using state-of-the-art AI image models (such as Nanobanana Pro or Imagen 3) or source royalty-free photography and graphics from public domain repositories (Pexels, Pixabay).
+7. **Tone of Voice & Writing Clarity**:
+   - Communicate in clear, friendly, and accessible English. Break down complex concepts into simple, intuitive explanations without unnecessary technical jargon.
+8. **Publishing Proportions & The Golden Ratio**:
+   - Utilize the Golden Ratio ($\phi \approx 1.618:1$, $6.0" \times 9.71"$) or the 6" x 9" Universal Trade Standard with Tschichold's Golden Canon of Page Construction to guarantee balanced, readable page geometry.
 

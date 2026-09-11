@@ -108,31 +108,20 @@ For PDF generation, download and embed font files locally:
 These standards produce Amazon KDP-compliant interior formatting suitable for
 trade paperback and ebook publishing.
 
-### Page Dimensions
+### Page Dimensions & Classical Proportions
 
-| Format | Width | Height | Use Case |
-|:-------|:------|:-------|:---------|
-| **Trade Paperback** | 6 in | 9 in | Standard book interior (KDP recommended) |
-| **US Letter Guide** | 8.5 in | 11 in | Technical manuals, reports, user guides |
-| **A4 International** | 210mm | 297mm | EU/international reports |
+| Format | Width | Height | Aspect Ratio | Use Case |
+|:-------|:------|:-------|:-------------|:---------|
+| **Golden Ratio Standard** | 6.0 in | 9.71 in | **1:1.618** ($\phi$) | Classical Divine Proportion; most harmonious reading experience |
+| **Trade Paperback (Tschichold)** | 6.0 in | 9.0 in | **2:3 (1:1.5)** | Universal Amazon KDP trade standard; Jan Tschichold's Golden Canon |
+| **US Letter Guide** | 8.5 in | 11.0 in | **1:1.294** | Corporate technical manuals, reports, and administrative briefs |
+| **A4 International** | 210mm | 297mm | **1:1.414** ($\sqrt{2}$) | ISO 216 international standard documentation |
 
-### Margins (Trade Paperback 6×9)
-
-| Edge | Measurement | Notes |
-|:-----|:------------|:------|
-| Top | 0.75 in | Includes running header space |
-| Bottom | 0.75 in | Includes page number space |
-| Outside | 0.625 in | Outer edge (right on recto, left on verso) |
-| Inside (Gutter) | 0.875 in | Binding edge — extra space for spine |
-
-### Margins (US Letter 8.5×11)
-
-| Edge | Measurement |
-|:-----|:------------|
-| Top | 0.75 in |
-| Bottom | 0.75 in |
-| Left | 0.75 in |
-| Right | 0.75 in |
+### Jan Tschichold's Golden Canon & Margin Harmony
+For books and executive whitepapers, apply Tschichold's classic 2:3:4:6 margin ratio (Inner: 0.50in, Top: 0.75in, Outer: 1.00in, Bottom: 1.50in) or calibrated trade margins:
+- **Inner (Gutter)**: 0.75 in – 0.875 in (protects text against physical book spine binding)
+- **Outer Margins**: 0.55 in – 0.625 in
+- **Top / Bottom**: 0.55 in – 0.75 in (allows breathing room for running headers and pagination)
 
 ### Chapter Opener Layout
 
@@ -193,6 +182,16 @@ Types and colors:
 - Border-radius: 6px
 - Padding: 16px
 - Syntax: Use brand accent color for keywords
+
+### Multimodal Media Sourcing & AI Image Generation
+- **AI Image Generation**: When visual assets, cover artwork, or illustrative diagrams are needed, utilize high-tier image generation models (such as Nanobanana Pro, Imagen 3, or high-fidelity diffusion engines) that honor brand color palettes and typography.
+- **Royalty-Free Media Sourcing**: When incorporating real-world photography or vector graphics, source exclusively from trusted royalty-free public domain collections (e.g., Pexels, Pixabay, Unsplash) with commercial-use rights.
+- **Image Preprocessing**: Ensure all embedded images are normalized to 150–300 DPI, cropped to clean aspect ratios, and compressed without visual degradation.
+
+### Plain English & Detailed Friendly Tone Standards
+- **Clarity Over Jargon**: Replace intimidating technical vocabulary with simple, direct English that anyone can grasp immediately.
+- **Friendly & Encouraging Tone**: Structure documents so that users feel supported, guided, and confident.
+- **Concrete Analogies**: When describing technical architectures or document protocols, pair them with everyday analogies (e.g., comparing preflight triage to an airport safety inspection before takeoff).
 
 ---
 
